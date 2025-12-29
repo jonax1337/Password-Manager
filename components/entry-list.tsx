@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { getEntries, createEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
@@ -107,13 +107,17 @@ export function EntryList({
   return (
     <>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-sm font-medium">
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <h2 className="text-sm font-semibold">
             {isSearching
               ? `Search Results (${entries.length})`
               : `Entries (${entries.length})`}
-          </span>
-          {groupUuid && !isSearching && (
+          </h2>
+          {isSearching ? (
+            <div className="h-7 w-7 flex items-center justify-center">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+          ) : groupUuid && (
             <Button
               variant="ghost"
               size="icon"
