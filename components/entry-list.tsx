@@ -25,6 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent } from "@/components/icon-picker";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { openEntryWindow } from "@/lib/window";
 
 interface EntryListProps {
   groupUuid: string;
@@ -82,8 +83,11 @@ export function EntryList({
     if (!newEntryTitle.trim() || !groupUuid) return;
 
     try {
+      // Generate UUID for the new entry
+      const entryUuid = crypto.randomUUID();
+      
       const newEntry: EntryData = {
-        uuid: "",
+        uuid: entryUuid,
         title: newEntryTitle,
         username: "",
         password: "",
@@ -95,6 +99,7 @@ export function EntryList({
       };
 
       await createEntry(newEntry);
+      
       toast({
         title: "Success",
         description: "Entry created successfully",
@@ -103,6 +108,12 @@ export function EntryList({
       setNewEntryTitle("");
       setShowCreateDialog(false);
       onRefresh();
+      
+      // Wait a moment for database write to complete before opening window
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Open the entry editor window for the newly created entry
+      await openEntryWindow(newEntry, groupUuid);
     } catch (error: any) {
       toast({
         title: "Error",

@@ -84,8 +84,8 @@ export function MainApp({ onClose }: MainAppProps) {
     const updateTitle = async () => {
       const appWindow = getCurrentWindow();
       const title = dbPath 
-        ? (isDirty ? `${dbPath} *` : dbPath)
-        : 'Password Manager';
+        ? (isDirty ? `${dbPath}* - Simple Password Manager` : `${dbPath} - Simple Password Manager`)
+        : 'Simple Password Manager';
       await appWindow.setTitle(title);
     };
     updateTitle();

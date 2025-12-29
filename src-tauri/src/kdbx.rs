@@ -23,6 +23,8 @@ pub enum DatabaseError {
     EntryNotFound,
     #[error("Group not found")]
     GroupNotFound,
+    #[error("Invalid UUID format")]
+    InvalidUuid,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -197,8 +199,12 @@ impl Database {
         let group = self.find_group_by_uuid_mut(&entry_data.group_uuid)?;
         
         let mut entry = Entry::default();
-        // Generate a unique UUID for the new entry
-        entry.uuid = Uuid::new_v4();
+        // Use provided UUID or generate a new one
+        entry.uuid = if entry_data.uuid.is_empty() {
+            Uuid::new_v4()
+        } else {
+            Uuid::parse_str(&entry_data.uuid).map_err(|_| DatabaseError::InvalidUuid)?
+        };
         
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
         entry.fields.insert("UserName".to_string(), Value::Unprotected(entry_data.username));
