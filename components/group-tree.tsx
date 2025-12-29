@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -74,6 +74,18 @@ export function GroupTree({
       },
     })
   );
+
+  // Set global cursor during drag
+  useEffect(() => {
+    if (activeId) {
+      document.body.style.cursor = 'grabbing';
+    } else {
+      document.body.style.cursor = '';
+    }
+    return () => {
+      document.body.style.cursor = '';
+    };
+  }, [activeId]);
 
   const toggleExpand = (uuid: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -268,6 +280,9 @@ export function GroupTree({
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: g.uuid,
       disabled: depth === 0, // Root can't be dragged
+      data: {
+        type: 'folder',
+      },
     });
 
     const { setNodeRef: setDropRef, isOver } = useDroppable({
@@ -288,12 +303,15 @@ export function GroupTree({
             ref={setNodeRef}
             {...listeners}
             {...attributes}
-            style={{ opacity: isDragging ? 0.6 : 1 }}
+            style={{ 
+              opacity: isDragging ? 0.6 : 1,
+              cursor: isDragging ? 'grabbing' : 'default'
+            }}
           >
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div
-                  className={`flex items-center gap-1 px-2 py-1.5 hover:bg-accent cursor-pointer transition-all ${
+                  className={`flex items-center gap-1 px-2 py-1.5 hover:bg-accent transition-all ${
                     isSelected ? "bg-accent" : ""
                   } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""}`}
                   style={{ paddingLeft: `${depth * 12 + 8}px` }}
@@ -415,7 +433,7 @@ export function GroupTree({
         
         <DragOverlay dropAnimation={null}>
           {activeGroup ? (
-            <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/80 border-2 border-primary rounded shadow-lg opacity-90">
+            <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/50 rounded shadow-lg opacity-60">
               {(() => {
                 const FolderIcon = getIconComponent(48);
                 return <FolderIcon className="h-4 w-4 text-muted-foreground" />;
