@@ -17,7 +17,7 @@ import { ChevronRight, ChevronDown, Plus, Trash2, Edit2 } from "lucide-react";
 import { createGroup, deleteGroup, renameGroup, moveGroup, reorderGroup } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { GroupData } from "@/lib/tauri";
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { ask } from "@tauri-apps/plugin-dialog";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -144,12 +144,16 @@ export function GroupTree({
   };
 
   const handleDeleteGroup = async (uuid: string) => {
-    const confirmed = await confirm(
-      "Are you sure you want to delete this group and all its contents?",
-      { title: "Delete Group", kind: "warning" }
+    // Find the group to get its name
+    const groupToDelete = findGroupByUuid(group, uuid);
+    const groupName = groupToDelete?.name || "this group";
+    
+    const shouldDelete = await ask(
+      `Are you sure you want to delete "${groupName}" and all its contents?`,
+      { kind: "warning", title: "Delete Group" }
     );
     
-    if (!confirmed) {
+    if (!shouldDelete) {
       return;
     }
 

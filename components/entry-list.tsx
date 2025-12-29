@@ -24,7 +24,7 @@ import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent } from "@/components/icon-picker";
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { ask } from "@tauri-apps/plugin-dialog";
 
 interface EntryListProps {
   groupUuid: string;
@@ -113,11 +113,12 @@ export function EntryList({
   };
 
   const handleDeleteEntry = async (entry: EntryData) => {
-    const confirmed = await confirm(
-      `Are you sure you want to delete "${entry.title}"?`
+    const shouldDelete = await ask(
+      `Are you sure you want to delete "${entry.title}" and all its data?`,
+      { kind: "warning", title: "Delete Entry" }
     );
     
-    if (!confirmed) {
+    if (!shouldDelete) {
       return;
     }
 

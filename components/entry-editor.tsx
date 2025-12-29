@@ -13,7 +13,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { EntryData } from "@/lib/tauri";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { IconPicker } from "@/components/icon-picker";
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { emit } from "@tauri-apps/api/event";
 
 interface EntryEditorProps {
@@ -83,38 +83,6 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       toast({
         title: "Error",
         description: error || "Failed to update entry",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async () => {
-    const confirmed = await confirm(
-      "Are you sure you want to delete this entry?",
-      { title: "Delete Entry", kind: "warning" }
-    );
-    
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await deleteEntry(entry.uuid);
-      
-      // Emit event to main window to refresh and mark as dirty
-      await emit('entry-deleted', { entryUuid: entry.uuid });
-      
-      toast({
-        title: "Success",
-        description: "Entry deleted successfully",
-        variant: "success",
-      });
-      onClose();
-      onRefresh();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error || "Failed to delete entry",
         variant: "destructive",
       });
     }
