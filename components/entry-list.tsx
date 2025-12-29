@@ -136,7 +136,7 @@ export function EntryList({
                   className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
                     selectedEntry?.uuid === entry.uuid ? "bg-accent" : ""
                   }`}
-                  onClick={() => onSelectEntry(entry)}
+                  onDoubleClick={() => onSelectEntry(entry)}
                 >
                   <EntryIcon className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1 overflow-hidden">

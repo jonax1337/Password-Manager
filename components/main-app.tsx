@@ -17,14 +17,15 @@ import { confirm } from "@tauri-apps/plugin-dialog";
 import { saveDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
-import { EntryEditor } from "@/components/entry-editor";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { openEntryWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
 import { closeDatabase, getGroups, searchEntries } from "@/lib/tauri";
 import type { GroupData, EntryData } from "@/lib/tauri";
 import { clearLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 
 interface MainAppProps {
   onClose: () => void;
@@ -33,7 +34,6 @@ interface MainAppProps {
 export function MainApp({ onClose }: MainAppProps) {
   const [rootGroup, setRootGroup] = useState<GroupData | null>(null);
   const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
-  const [selectedEntry, setSelectedEntry] = useState<EntryData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<EntryData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -89,6 +89,24 @@ export function MainApp({ onClose }: MainAppProps) {
     };
     updateTitle();
   }, [dbPath, isDirty]);
+
+  // Listen for entry updates from child windows
+  useEffect(() => {
+    const unlistenUpdated = listen('entry-updated', () => {
+      console.log('Entry updated in child window, refreshing...');
+      handleRefresh();
+    });
+
+    const unlistenDeleted = listen('entry-deleted', () => {
+      console.log('Entry deleted in child window, refreshing...');
+      handleRefresh();
+    });
+
+    return () => {
+      unlistenUpdated.then(fn => fn());
+      unlistenDeleted.then(fn => fn());
+    };
+  }, []);
 
   // Handle window close event
   useEffect(() => {
@@ -298,30 +316,15 @@ export function MainApp({ onClose }: MainAppProps) {
           )}
         </div>
 
-        <div className="w-80 border-r">
+        <div className="flex-1">
           <EntryList
             groupUuid={isSearching ? "" : selectedGroupUuid}
             searchResults={isSearching ? searchResults : []}
-            selectedEntry={selectedEntry}
-            onSelectEntry={setSelectedEntry}
+            selectedEntry={null}
+            onSelectEntry={(entry) => openEntryWindow(entry, isSearching ? "" : selectedGroupUuid)}
             onRefresh={handleRefresh}
             isSearching={isSearching}
           />
-        </div>
-
-        <div className="flex-1">
-          {selectedEntry ? (
-            <EntryEditor
-              key={selectedEntry.uuid}
-              entry={selectedEntry}
-              onClose={() => setSelectedEntry(null)}
-              onRefresh={handleRefresh}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <p>Select an entry to view details</p>
-            </div>
-          )}
         </div>
       </div>
 

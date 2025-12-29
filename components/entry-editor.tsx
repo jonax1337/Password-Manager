@@ -14,6 +14,7 @@ import type { EntryData } from "@/lib/tauri";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { IconPicker } from "@/components/icon-picker";
 import { confirm } from "@tauri-apps/plugin-dialog";
+import { emit } from "@tauri-apps/api/event";
 
 interface EntryEditorProps {
   entry: EntryData;
@@ -60,6 +61,10 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
     
     try {
       await updateEntry(dataToSave);
+      
+      // Emit event to main window to refresh and mark as dirty
+      await emit('entry-updated', { entryUuid: entry.uuid });
+      
       toast({
         title: "Success",
         description: "Entry updated successfully",
@@ -89,6 +94,10 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
 
     try {
       await deleteEntry(entry.uuid);
+      
+      // Emit event to main window to refresh and mark as dirty
+      await emit('entry-deleted', { entryUuid: entry.uuid });
+      
       toast({
         title: "Success",
         description: "Entry deleted successfully",
