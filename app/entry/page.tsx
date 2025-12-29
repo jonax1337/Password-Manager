@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { EntryEditor } from "@/components/entry-editor";
 import type { EntryData } from "@/lib/tauri";
 import { getEntries } from "@/lib/tauri";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 
-export default function EntryPage() {
-  const params = useParams();
-  const uuid = params.uuid as string;
+function EntryContent() {
+  const searchParams = useSearchParams();
+  const uuid = searchParams.get('uuid');
+  const groupUuid = searchParams.get('groupUuid');
   const [entry, setEntry] = useState<EntryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -25,12 +26,8 @@ export default function EntryPage() {
   useEffect(() => {
     const loadEntry = async () => {
       try {
-        // Get the group UUID from URL query parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const groupUuid = urlParams.get('groupUuid');
-        
-        if (!groupUuid) {
-          console.error('No group UUID found in URL parameters');
+        if (!groupUuid || !uuid) {
+          console.error('Missing UUID parameters');
           setLoading(false);
           return;
         }
@@ -48,10 +45,10 @@ export default function EntryPage() {
       }
     };
 
-    if (uuid) {
+    if (uuid && groupUuid) {
       loadEntry();
     }
-  }, [uuid]);
+  }, [uuid, groupUuid]);
 
   // Handle window close event with unsaved changes check
   useEffect(() => {
@@ -131,5 +128,17 @@ export default function EntryPage() {
         onHasChangesChange={setHasUnsavedChanges}
       />
     </div>
+  );
+}
+
+export default function EntryPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <EntryContent />
+    </Suspense>
   );
 }

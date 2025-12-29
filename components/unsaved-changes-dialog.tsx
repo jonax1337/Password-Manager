@@ -37,7 +37,7 @@ export function UnsavedChangesDialog({
             Cancel
           </Button>
           <Button variant="destructive" onClick={onDontSave}>
-            Don't Save
+            Don&apos;t Save
           </Button>
           <Button onClick={onSave}>
             Save

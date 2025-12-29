@@ -336,7 +336,7 @@ export function GroupTree({
             }}
           >
             <ContextMenu>
-              <ContextMenuTrigger asChild>
+              <ContextMenuTrigger asChild onContextMenu={(e: React.MouseEvent) => e.stopPropagation()}>
                 <div
                   className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 ${
                     isSelected ? "bg-accent font-medium" : ""
@@ -454,9 +454,24 @@ export function GroupTree({
             </Button>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-1">{renderGroup(group, 0)}</div>
-          </ScrollArea>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <ScrollArea className="flex-1">
+                <div className="p-1 min-h-full">
+                  {renderGroup(group, 0)}
+                </div>
+              </ScrollArea>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => {
+                setParentUuid(null);
+                setShowCreateDialog(true);
+              }}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Group
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         </div>
         
         <DragOverlay dropAnimation={null}>

@@ -177,26 +177,28 @@ export function EntryList({
           )}
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="space-y-1 p-2">
-            {entries.map((entry) => {
-              const iconId = entry.icon_id ?? 0;
-              const EntryIcon = getIconComponent(iconId);
-              const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
-              return (
-                <ContextMenu 
-                  key={entry.uuid}
-                  onOpenChange={(open) => {
-                    setContextMenuEntryUuid(open ? entry.uuid : null);
-                  }}
-                >
-                  <ContextMenuTrigger>
-                    <div
-                      className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
-                        selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
-                      }`}
-                      onDoubleClick={() => onSelectEntry(entry)}
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <ScrollArea className="flex-1">
+              <div className="space-y-1 p-2 min-h-full">
+                {entries.map((entry) => {
+                  const iconId = entry.icon_id ?? 0;
+                  const EntryIcon = getIconComponent(iconId);
+                  const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
+                  return (
+                    <ContextMenu 
+                      key={entry.uuid}
+                      onOpenChange={(open) => {
+                        setContextMenuEntryUuid(open ? entry.uuid : null);
+                      }}
                     >
+                      <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
+                        <div
+                          className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
+                            selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
+                          }`}
+                          onDoubleClick={() => onSelectEntry(entry)}
+                        >
                       <EntryIcon className="h-4 w-4 text-muted-foreground" />
                       <div className="flex-1 overflow-hidden">
                         <p className="truncate text-sm font-medium">{entry.title}</p>
@@ -219,17 +221,27 @@ export function EntryList({
               );
             })}
 
-            {entries.length === 0 && (
-              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                {isSearching
-                  ? "No results found"
-                  : groupUuid
-                  ? "No entries in this group"
-                  : "Select a group to view entries"}
+                {entries.length === 0 && (
+                  <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                    {isSearching
+                      ? "No results found"
+                      : groupUuid
+                      ? "No entries in this group"
+                      : "Select a group to view entries"}
+                  </div>
+                )}
               </div>
+            </ScrollArea>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            {!isSearching && groupUuid && (
+              <ContextMenuItem onClick={() => setShowCreateDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Entry
+              </ContextMenuItem>
             )}
-          </div>
-        </ScrollArea>
+          </ContextMenuContent>
+        </ContextMenu>
       </div>
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
