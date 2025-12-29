@@ -27,6 +27,7 @@ import { clearLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { loadGroupTreeState } from "@/lib/group-state";
+import { ResizablePanel } from "./resizable-panel";
 
 interface MainAppProps {
   onClose: () => void;
@@ -311,7 +312,12 @@ export function MainApp({ onClose }: MainAppProps) {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-64 border-r">
+        <ResizablePanel
+          defaultWidth={256}
+          minWidth={200}
+          maxWidth={500}
+          storageKey="groupTreeWidth"
+        >
           {rootGroup && (
             <GroupTree
               group={rootGroup}
@@ -328,7 +334,7 @@ export function MainApp({ onClose }: MainAppProps) {
               initialExpandedGroups={initialExpandedGroups}
             />
           )}
-        </div>
+        </ResizablePanel>
 
         <div className="flex-1">
           <EntryList
