@@ -11,7 +11,6 @@ import {
   Moon,
   Sun,
   LogOut,
-  Sparkles,
   Save,
 } from "lucide-react";
 import { confirm } from "@tauri-apps/plugin-dialog";
@@ -19,7 +18,6 @@ import { saveDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { EntryEditor } from "@/components/entry-editor";
-import { PasswordGenerator } from "@/components/password-generator";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
@@ -39,7 +37,6 @@ export function MainApp({ onClose }: MainAppProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<EntryData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showGenerator, setShowGenerator] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [dbPath, setDbPath] = useState<string>("");
@@ -242,12 +239,12 @@ export function MainApp({ onClose }: MainAppProps) {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="relative">
+      <div className="flex items-center gap-4 border-b px-4 py-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search entries..."
-            className="w-96 pl-9"
+            className="w-full pl-9"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
           />
@@ -257,32 +254,24 @@ export function MainApp({ onClose }: MainAppProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleSave}
-            title={isDirty ? "Save database (unsaved changes)" : "Save database"}
-            className={isDirty ? "text-orange-500" : ""}
-          >
-            <Save className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowGenerator(!showGenerator)}
-            title="Password Generator"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title="Toggle theme"
           >
             {theme === "dark" ? (
               <Sun className="h-4 w-4" />
             ) : (
               <Moon className="h-4 w-4" />
             )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSave}
+            title={isDirty ? "Save database (unsaved changes)" : "Save database"}
+            className={isDirty ? "text-orange-500" : ""}
+          >
+            <Save className="h-4 w-4" />
           </Button>
 
           <Button variant="ghost" size="icon" onClick={handleClose} title="Logout">
@@ -321,11 +310,7 @@ export function MainApp({ onClose }: MainAppProps) {
         </div>
 
         <div className="flex-1">
-          {showGenerator ? (
-            <div className="absolute right-0 top-0 z-50 h-full w-96 border-l bg-background shadow-lg">
-              <PasswordGenerator onClose={() => setShowGenerator(false)} />
-            </div>
-          ) : selectedEntry ? (
+          {selectedEntry ? (
             <EntryEditor
               key={selectedEntry.uuid}
               entry={selectedEntry}
