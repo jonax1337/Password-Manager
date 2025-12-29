@@ -29,13 +29,13 @@ const toastVariants = cva(
       variant: {
         default: "border border-border/50 bg-background/80 text-foreground",
         destructive:
-          "destructive group border border-red-500/50 bg-red-500/20 text-red-100 backdrop-blur-xl",
+          "destructive group border border-red-500/50 bg-red-500/20 text-red-900 dark:text-red-100 backdrop-blur-xl",
         success:
-          "group border border-green-500/50 bg-green-500/20 text-green-100 backdrop-blur-xl",
+          "group border border-green-500/50 bg-green-500/20 text-green-900 dark:text-green-100 backdrop-blur-xl",
         warning:
-          "group border border-yellow-500/50 bg-yellow-500/20 text-yellow-100 backdrop-blur-xl",
+          "group border border-yellow-500/50 bg-yellow-500/20 text-yellow-900 dark:text-yellow-100 backdrop-blur-xl",
         info:
-          "group border border-blue-500/50 bg-blue-500/20 text-blue-100 backdrop-blur-xl",
+          "group border border-blue-500/50 bg-blue-500/20 text-blue-900 dark:text-blue-100 backdrop-blur-xl",
       },
     },
     defaultVariants: {
@@ -82,7 +82,7 @@ const ToastClose = React.forwardRef<
     ref={ref}
     className={cn(
       "absolute right-2 top-2 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100",
-      "text-foreground/70 hover:text-foreground group-[.destructive]:text-red-100/70 group-[.destructive]:hover:text-red-100 group-[.success]:text-green-100/70 group-[.success]:hover:text-green-100 group-[.warning]:text-yellow-100/70 group-[.warning]:hover:text-yellow-100 group-[.info]:text-blue-100/70 group-[.info]:hover:text-blue-100",
+      "text-foreground/70 hover:text-foreground group-[.destructive]:text-red-900/70 group-[.destructive]:hover:text-red-900 dark:group-[.destructive]:text-red-100/70 dark:group-[.destructive]:hover:text-red-100 group-[.success]:text-green-900/70 group-[.success]:hover:text-green-900 dark:group-[.success]:text-green-100/70 dark:group-[.success]:hover:text-green-100 group-[.warning]:text-yellow-900/70 group-[.warning]:hover:text-yellow-900 dark:group-[.warning]:text-yellow-100/70 dark:group-[.warning]:hover:text-yellow-100 group-[.info]:text-blue-900/70 group-[.info]:hover:text-blue-900 dark:group-[.info]:text-blue-100/70 dark:group-[.info]:hover:text-blue-100",
       className
     )}
     toast-close=""
