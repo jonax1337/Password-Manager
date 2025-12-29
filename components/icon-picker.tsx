@@ -28,11 +28,11 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           <IconComponent className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2" align="start">
+      <PopoverContent className="w-80 p-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="mb-2 text-xs text-muted-foreground px-1">
           KeePass Standard Icons (68)
         </div>
-        <ScrollArea className="h-64">
+        <ScrollArea className="h-64" type="always">
           <div className="grid grid-cols-8 gap-1 pr-3">
             {KEEPASS_ICONS.map((iconData) => {
               const Icon = iconData.icon;

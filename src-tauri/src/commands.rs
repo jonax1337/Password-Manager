@@ -131,11 +131,13 @@ pub fn create_group(
     state: State<AppState>,
     name: String,
     parent_uuid: Option<String>,
+    icon_id: Option<u32>,
 ) -> Result<(), String> {
+    println!("Creating group '{}' with icon_id: {:?}", name, icon_id);
     let mut database_lock = state.database.lock().unwrap();
 
     if let Some(db) = database_lock.as_mut() {
-        db.create_group(name, parent_uuid)
+        db.create_group(name, parent_uuid, icon_id)
             .map_err(|e| e.to_string())?;
         Ok(())
     } else {
@@ -148,11 +150,12 @@ pub fn rename_group(
     state: State<AppState>,
     group_uuid: String,
     new_name: String,
+    icon_id: Option<u32>,
 ) -> Result<(), String> {
     let mut database_lock = state.database.lock().unwrap();
 
     if let Some(db) = database_lock.as_mut() {
-        db.rename_group(&group_uuid, new_name)
+        db.rename_group(&group_uuid, new_name, icon_id)
             .map_err(|e| e.to_string())?;
         Ok(())
     } else {

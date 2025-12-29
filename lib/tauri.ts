@@ -62,16 +62,18 @@ export async function deleteEntry(entryUuid: string): Promise<void> {
 
 export async function createGroup(
   name: string,
-  parentUuid: string | null
+  parentUuid: string | null,
+  iconId?: number
 ): Promise<void> {
-  return await invoke<void>("create_group", { name, parentUuid });
+  return await invoke<void>("create_group", { name, parentUuid, iconId });
 }
 
 export async function renameGroup(
   groupUuid: string,
-  newName: string
+  newName: string,
+  iconId?: number
 ): Promise<void> {
-  return await invoke<void>("rename_group", { groupUuid, newName });
+  return await invoke<void>("rename_group", { groupUuid, newName, iconId });
 }
 
 export async function moveGroup(

@@ -23,7 +23,7 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
-import { getIconComponent } from "@/components/icon-picker";
+import { getIconComponent, IconPicker } from "@/components/icon-picker";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { openEntryWindow } from "@/lib/window";
 
@@ -47,6 +47,7 @@ export function EntryList({
   const [entries, setEntries] = useState<EntryData[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEntryTitle, setNewEntryTitle] = useState("");
+  const [newEntryIconId, setNewEntryIconId] = useState(0);
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -95,7 +96,7 @@ export function EntryList({
         notes: "",
         tags: "",
         group_uuid: groupUuid,
-        icon_id: 0, // Default icon
+        icon_id: newEntryIconId,
       };
 
       await createEntry(newEntry);
@@ -106,6 +107,7 @@ export function EntryList({
         variant: "success",
       });
       setNewEntryTitle("");
+      setNewEntryIconId(0);
       setShowCreateDialog(false);
       onRefresh();
       
@@ -242,13 +244,20 @@ export function EntryList({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="entryTitle">Title</Label>
-              <Input
-                id="entryTitle"
-                value={newEntryTitle}
-                onChange={(e) => setNewEntryTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreateEntry()}
-                placeholder="Enter entry title"
-              />
+              <div className="flex gap-2">
+                <IconPicker 
+                  value={newEntryIconId} 
+                  onChange={setNewEntryIconId}
+                />
+                <Input
+                  id="entryTitle"
+                  value={newEntryTitle}
+                  onChange={(e) => setNewEntryTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateEntry()}
+                  placeholder="Enter entry title"
+                  className="flex-1"
+                />
+              </div>
             </div>
           </div>
 

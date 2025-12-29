@@ -260,7 +260,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn create_group(&mut self, name: String, parent_uuid: Option<String>) -> Result<(), DatabaseError> {
+    pub fn create_group(&mut self, name: String, parent_uuid: Option<String>, icon_id: Option<u32>) -> Result<(), DatabaseError> {
         let parent_group = if let Some(parent_id) = parent_uuid {
             self.find_group_by_uuid_mut(&parent_id)?
         } else {
@@ -274,14 +274,28 @@ impl Database {
         
         // Generate a unique UUID for the new group
         new_group.uuid = Uuid::new_v4();
+        
+        // Set icon ID if provided
+        if let Some(id) = icon_id {
+            println!("Setting group icon_id to: {}", id);
+            new_group.icon_id = Some(id as usize);
+        } else {
+            println!("No icon_id provided, using default");
+        }
 
         parent_group.add_child(new_group);
         Ok(())
     }
 
-    pub fn rename_group(&mut self, group_uuid: &str, new_name: String) -> Result<(), DatabaseError> {
+    pub fn rename_group(&mut self, group_uuid: &str, new_name: String, icon_id: Option<u32>) -> Result<(), DatabaseError> {
         let group = self.find_group_by_uuid_mut(group_uuid)?;
         group.name = new_name;
+        
+        // Update icon ID if provided
+        if let Some(id) = icon_id {
+            group.icon_id = Some(id as usize);
+        }
+        
         Ok(())
     }
 

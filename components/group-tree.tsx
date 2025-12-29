@@ -25,7 +25,7 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { getIconComponent } from "@/components/icon-picker";
+import { getIconComponent, IconPicker } from "@/components/icon-picker";
 import {
   DndContext,
   DragOverlay,
@@ -60,8 +60,10 @@ export function GroupTree({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupIconId, setNewGroupIconId] = useState(48);
   const [renameGroupUuid, setRenameGroupUuid] = useState("");
   const [renameGroupName, setRenameGroupName] = useState("");
+  const [renameGroupIconId, setRenameGroupIconId] = useState(48);
   const [parentUuid, setParentUuid] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -101,14 +103,16 @@ export function GroupTree({
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
 
+    console.log('Creating group with icon ID:', newGroupIconId);
     try {
-      await createGroup(newGroupName, parentUuid);
+      await createGroup(newGroupName, parentUuid, newGroupIconId);
       toast({
         title: "Success",
         description: "Group created successfully",
         variant: "success",
       });
       setNewGroupName("");
+      setNewGroupIconId(48);
       setShowCreateDialog(false);
       onRefresh();
     } catch (error: any) {
@@ -124,7 +128,7 @@ export function GroupTree({
     if (!renameGroupName.trim()) return;
 
     try {
-      await renameGroup(renameGroupUuid, renameGroupName);
+      await renameGroup(renameGroupUuid, renameGroupName, renameGroupIconId);
       toast({
         title: "Success",
         description: "Group renamed successfully",
@@ -297,7 +301,7 @@ export function GroupTree({
     const isExpanded = expandedGroups.has(g.uuid);
     const isSelected = g.uuid === selectedUuid;
     const hasChildren = g.children && g.children.length > 0;
-    const FolderIcon = getIconComponent(48);
+    const FolderIcon = getIconComponent(g.icon_id ?? 48);
     
     const isDropTarget = overId === g.uuid;
     const isContextMenuOpen = contextMenuGroupUuid === g.uuid;
@@ -373,6 +377,7 @@ export function GroupTree({
               onClick={() => {
                 setRenameGroupUuid(g.uuid);
                 setRenameGroupName(g.name);
+                setRenameGroupIconId(g.icon_id ?? 48);
                 setShowRenameDialog(true);
               }}
             >
@@ -445,7 +450,7 @@ export function GroupTree({
           {activeGroup ? (
             <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/50 rounded shadow-lg opacity-60">
               {(() => {
-                const FolderIcon = getIconComponent(48);
+                const FolderIcon = getIconComponent(activeGroup.icon_id ?? 48);
                 return <FolderIcon className="h-4 w-4 text-muted-foreground" />;
               })()}
               <span className="text-sm font-medium">{activeGroup.name}</span>
@@ -466,14 +471,21 @@ export function GroupTree({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="groupName">Group Name</Label>
-              <Input
-                id="groupName"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
-                placeholder="Enter group name"
-                autoFocus
-              />
+              <div className="flex gap-2">
+                <IconPicker 
+                  value={newGroupIconId} 
+                  onChange={setNewGroupIconId}
+                />
+                <Input
+                  id="groupName"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
+                  placeholder="Enter group name"
+                  className="flex-1"
+                  autoFocus
+                />
+              </div>
             </div>
           </div>
 
@@ -501,14 +513,21 @@ export function GroupTree({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="renameGroupName">Group Name</Label>
-              <Input
-                id="renameGroupName"
-                value={renameGroupName}
-                onChange={(e) => setRenameGroupName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleRenameGroup()}
-                placeholder="Enter group name"
-                autoFocus
-              />
+              <div className="flex gap-2">
+                <IconPicker 
+                  value={renameGroupIconId} 
+                  onChange={setRenameGroupIconId}
+                />
+                <Input
+                  id="renameGroupName"
+                  value={renameGroupName}
+                  onChange={(e) => setRenameGroupName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleRenameGroup()}
+                  placeholder="Enter group name"
+                  className="flex-1"
+                  autoFocus
+                />
+              </div>
             </div>
           </div>
 
