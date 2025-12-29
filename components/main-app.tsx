@@ -1,0 +1,351 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Lock,
+  Search,
+  Plus,
+  Moon,
+  Sun,
+  LogOut,
+  Sparkles,
+  Save,
+} from "lucide-react";
+import { confirm } from "@tauri-apps/plugin-dialog";
+import { saveDatabase } from "@/lib/tauri";
+import { GroupTree } from "@/components/group-tree";
+import { EntryList } from "@/components/entry-list";
+import { EntryEditor } from "@/components/entry-editor";
+import { PasswordGenerator } from "@/components/password-generator";
+import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { useTheme } from "next-themes";
+import { closeDatabase, getGroups, searchEntries } from "@/lib/tauri";
+import type { GroupData, EntryData } from "@/lib/tauri";
+import { clearLastDatabasePath } from "@/lib/storage";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+interface MainAppProps {
+  onClose: () => void;
+}
+
+export function MainApp({ onClose }: MainAppProps) {
+  const [rootGroup, setRootGroup] = useState<GroupData | null>(null);
+  const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
+  const [selectedEntry, setSelectedEntry] = useState<EntryData | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<EntryData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isDirty, setIsDirty] = useState(false);
+  const [dbPath, setDbPath] = useState<string>("");
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
+  const isDirtyRef = useRef(isDirty);
+  const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
+
+  useEffect(() => {
+    loadGroups();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    // Load database path on mount
+    const loadDbInfo = async () => {
+      const lastPath = localStorage.getItem("lastDatabasePath");
+      if (lastPath) {
+        setDbPath(lastPath);
+      }
+    };
+    loadDbInfo();
+  }, []);
+
+  // Add Ctrl+S keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDirty]);
+
+  // Update window title with database name and unsaved indicator
+  useEffect(() => {
+    const updateTitle = async () => {
+      const appWindow = getCurrentWindow();
+      const dbName = dbPath ? dbPath.split(/[\\/]/).pop()?.replace('.kdbx', '') || 'Password Manager' : 'Password Manager';
+      const title = isDirty ? `${dbName} *` : dbName;
+      await appWindow.setTitle(title);
+    };
+    updateTitle();
+  }, [dbPath, isDirty]);
+
+  // Handle window close event
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    let unlisten: (() => void) | undefined;
+
+    const setupCloseHandler = async () => {
+      unlisten = await appWindow.onCloseRequested(async (event) => {
+        // Use ref to get current value, avoiding stale closure
+        if (isDirtyRef.current) {
+          event.preventDefault();
+          setCloseAction('window');
+          setShowUnsavedDialog(true);
+        } else {
+          // Clean up and allow close
+          await performClose();
+        }
+      });
+    };
+
+    setupCloseHandler();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []); // Empty deps - handler stays stable, uses ref for current value
+
+  const loadGroups = async () => {
+    try {
+      const groups = await getGroups();
+      setRootGroup(groups);
+      if (!selectedGroupUuid && groups.uuid) {
+        setSelectedGroupUuid(groups.uuid);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to load groups",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      setIsSearching(true);
+      try {
+        const results = await searchEntries(query);
+        setSearchResults(results);
+      } catch (error: any) {
+        toast({
+          title: "Search Error",
+          description: error || "Failed to search entries",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setIsSearching(false);
+      setSearchResults([]);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveDatabase();
+      setIsDirty(false);
+      toast({
+        title: "Success",
+        description: "Database saved successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to save database",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClose = async () => {
+    if (isDirty) {
+      setCloseAction('logout');
+      setShowUnsavedDialog(true);
+    } else {
+      await performClose();
+    }
+  };
+
+  const performClose = async () => {
+    try {
+      // Reset window title before closing
+      const appWindow = getCurrentWindow();
+      await appWindow.setTitle("Simple Password Manager");
+      
+      await closeDatabase();
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to close database",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnsavedCancel = () => {
+    setShowUnsavedDialog(false);
+    setCloseAction(null);
+  };
+
+  const handleUnsavedDontSave = async () => {
+    setShowUnsavedDialog(false);
+    setIsDirty(false);
+    
+    if (closeAction === 'window') {
+      const appWindow = getCurrentWindow();
+      await appWindow.close();
+    } else if (closeAction === 'logout') {
+      await performClose();
+    }
+    
+    setCloseAction(null);
+  };
+
+  const handleUnsavedSave = async () => {
+    setShowUnsavedDialog(false);
+    await handleSave();
+    
+    if (closeAction === 'window') {
+      const appWindow = getCurrentWindow();
+      await appWindow.close();
+    } else if (closeAction === 'logout') {
+      await performClose();
+    }
+    
+    setCloseAction(null);
+  };
+
+  const handleRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+    setIsDirty(true); // Mark as dirty on any change
+    // Don't clear selected entry - keep it open after refresh
+  };
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search entries..."
+            className="w-96 pl-9"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSave}
+            title={isDirty ? "Save database (unsaved changes)" : "Save database"}
+            className={isDirty ? "text-orange-500" : ""}
+          >
+            <Save className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowGenerator(!showGenerator)}
+            title="Password Generator"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={handleClose} title="Logout">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-64 border-r">
+          {rootGroup && (
+            <GroupTree
+              group={rootGroup}
+              selectedUuid={selectedGroupUuid}
+              onSelectGroup={setSelectedGroupUuid}
+              onRefresh={handleRefresh}
+              onGroupDeleted={(deletedUuid) => {
+                // If the deleted group was selected, deselect it
+                if (selectedGroupUuid === deletedUuid) {
+                  setSelectedGroupUuid(rootGroup.uuid);
+                }
+              }}
+            />
+          )}
+        </div>
+
+        <div className="w-80 border-r">
+          <EntryList
+            groupUuid={isSearching ? "" : selectedGroupUuid}
+            searchResults={isSearching ? searchResults : []}
+            selectedEntry={selectedEntry}
+            onSelectEntry={setSelectedEntry}
+            onRefresh={handleRefresh}
+            isSearching={isSearching}
+          />
+        </div>
+
+        <div className="flex-1">
+          {showGenerator ? (
+            <div className="absolute right-0 top-0 z-50 h-full w-96 border-l bg-background shadow-lg">
+              <PasswordGenerator onClose={() => setShowGenerator(false)} />
+            </div>
+          ) : selectedEntry ? (
+            <EntryEditor
+              key={selectedEntry.uuid}
+              entry={selectedEntry}
+              onClose={() => setSelectedEntry(null)}
+              onRefresh={handleRefresh}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <p>Select an entry to view details</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onCancel={handleUnsavedCancel}
+        onDontSave={handleUnsavedDontSave}
+        onSave={handleUnsavedSave}
+      />
+    </div>
+  );
+}

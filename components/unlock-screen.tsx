@@ -1,0 +1,165 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Lock, FolderOpen, Plus } from "lucide-react";
+import { openDatabase } from "@/lib/tauri";
+import { useToast } from "@/components/ui/use-toast";
+import { open } from "@tauri-apps/plugin-dialog";
+import { CreateDatabaseDialog } from "@/components/create-database-dialog";
+import { saveLastDatabasePath } from "@/lib/storage";
+
+interface UnlockScreenProps {
+  onUnlock: () => void;
+}
+
+export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
+  const [password, setPassword] = useState("");
+  const [filePath, setFilePath] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { toast } = useToast();
+
+  const handleSelectFile = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          {
+            name: "KeePass Database",
+            extensions: ["kdbx"],
+          },
+        ],
+      });
+
+      if (selected) {
+        setFilePath(selected as string);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.toString() || "Failed to select file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!filePath || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a database file and enter a password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [rootGroup, dbPath] = await openDatabase(filePath, password);
+      saveLastDatabasePath(filePath);
+      toast({
+        title: "Success",
+        description: "Database unlocked successfully",
+        variant: "success",
+      });
+      onUnlock();
+    } catch (error: any) {
+      toast({
+        title: "Failed to Unlock",
+        description: error?.toString() || "Invalid password or corrupted database",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <CreateDatabaseDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onSuccess={onUnlock}
+      />
+      
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="rounded-full bg-primary p-3">
+              <Lock className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold">Simple Password Manager</h1>
+            <p className="text-sm text-muted-foreground">
+              Open and unlock your password database
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="database">Database File</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="database"
+                  value={filePath}
+                  placeholder="Select a .kdbx file"
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSelectFile}
+                  title="Open existing database"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Master Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+                placeholder="Enter your master password"
+              />
+            </div>
+
+            <Button
+              onClick={handleUnlock}
+              disabled={loading || !filePath || !password}
+              className="w-full"
+            >
+              {loading ? "Unlocking..." : "Unlock Database"}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(true)}
+              className="w-full"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Database
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
