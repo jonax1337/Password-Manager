@@ -79,12 +79,13 @@ export function MainApp({ onClose }: MainAppProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDirty]);
 
-  // Update window title with database name and unsaved indicator
+  // Update window title with database path and unsaved indicator
   useEffect(() => {
     const updateTitle = async () => {
       const appWindow = getCurrentWindow();
-      const dbName = dbPath ? dbPath.split(/[\\/]/).pop()?.replace('.kdbx', '') || 'Password Manager' : 'Password Manager';
-      const title = isDirty ? `${dbName} *` : dbName;
+      const title = dbPath 
+        ? (isDirty ? `${dbPath} *` : dbPath)
+        : 'Password Manager';
       await appWindow.setTitle(title);
     };
     updateTitle();
@@ -321,7 +322,7 @@ export function MainApp({ onClose }: MainAppProps) {
             groupUuid={isSearching ? "" : selectedGroupUuid}
             searchResults={isSearching ? searchResults : []}
             selectedEntry={null}
-            onSelectEntry={(entry) => openEntryWindow(entry, isSearching ? "" : selectedGroupUuid)}
+            onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
             onRefresh={handleRefresh}
             isSearching={isSearching}
           />
