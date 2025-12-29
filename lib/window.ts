@@ -21,7 +21,7 @@ export async function openEntryWindow(entry: EntryData, groupUuid: string) {
     const webview = new WebviewWindow(windowLabel, {
       url: `${baseUrl}/entry/${entry.uuid}?groupUuid=${encodeURIComponent(groupUuid)}`,
       title: entry.title || "Entry Editor",
-      width: 800,
+      width: 500,
       height: 600,
       resizable: true,
       center: true,
