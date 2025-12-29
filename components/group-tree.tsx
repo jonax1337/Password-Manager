@@ -67,7 +67,6 @@ export function GroupTree({
   const [parentUuid, setParentUuid] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [contextMenuGroupUuid, setContextMenuGroupUuid] = useState<string | null>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -293,6 +292,16 @@ export function GroupTree({
         type: 'folder',
       },
     });
+    
+    // Prevent drag listeners from interfering with right-click
+    const dragListeners = {
+      ...listeners,
+      onPointerDown: (e: React.PointerEvent) => {
+        // Ignore right-click for dragging
+        if (e.button === 2) return;
+        listeners?.onPointerDown?.(e);
+      },
+    };
 
     const { setNodeRef: setDropRef, isOver } = useDroppable({
       id: g.uuid,
@@ -304,29 +313,24 @@ export function GroupTree({
     const FolderIcon = getIconComponent(g.icon_id ?? 48);
     
     const isDropTarget = overId === g.uuid;
-    const isContextMenuOpen = contextMenuGroupUuid === g.uuid;
 
     return (
       <div key={g.uuid}>
         <div ref={setDropRef} data-group-id={g.uuid}>
           <div 
             ref={setNodeRef}
-            {...listeners}
+            {...dragListeners}
             {...attributes}
             style={{ 
               opacity: isDragging ? 0.6 : 1,
               cursor: isDragging ? 'grabbing' : 'default'
             }}
           >
-            <ContextMenu
-              onOpenChange={(open) => {
-                setContextMenuGroupUuid(open ? g.uuid : null);
-              }}
-            >
+            <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div
-                  className={`flex items-center gap-1 px-2 py-1.5 hover:bg-accent transition-all ${
-                    isSelected || isContextMenuOpen ? "bg-accent" : ""
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 ${
+                    isSelected ? "bg-accent font-medium" : ""
                   } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""}`}
                   style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 >
