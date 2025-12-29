@@ -133,7 +133,6 @@ pub fn create_group(
     parent_uuid: Option<String>,
     icon_id: Option<u32>,
 ) -> Result<(), String> {
-    println!("Creating group '{}' with icon_id: {:?}", name, icon_id);
     let mut database_lock = state.database.lock().unwrap();
 
     if let Some(db) = database_lock.as_mut() {

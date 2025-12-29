@@ -26,6 +26,7 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { clearLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
+import { loadGroupTreeState } from "@/lib/group-state";
 
 interface MainAppProps {
   onClose: () => void;
@@ -42,6 +43,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dbPath, setDbPath] = useState<string>("");
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
+  const [initialExpandedGroups, setInitialExpandedGroups] = useState<Set<string> | undefined>(undefined);
   const isDirtyRef = useRef(isDirty);
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -52,11 +54,7 @@ export function MainApp({ onClose }: MainAppProps) {
   }, [isDirty]);
 
   useEffect(() => {
-    loadGroups();
-  }, [refreshTrigger]);
-
-  useEffect(() => {
-    // Load database path on mount
+    // Load database path on mount first
     const loadDbInfo = async () => {
       const lastPath = localStorage.getItem("lastDatabasePath");
       if (lastPath) {
@@ -65,6 +63,13 @@ export function MainApp({ onClose }: MainAppProps) {
     };
     loadDbInfo();
   }, []);
+
+  useEffect(() => {
+    // Only load groups after dbPath is available
+    if (dbPath) {
+      loadGroups();
+    }
+  }, [refreshTrigger, dbPath]);
 
   // Add Ctrl+S keyboard shortcut
   useEffect(() => {
@@ -141,7 +146,13 @@ export function MainApp({ onClose }: MainAppProps) {
     try {
       const groups = await getGroups();
       setRootGroup(groups);
-      if (!selectedGroupUuid && groups.uuid) {
+      
+      // Load persisted state on first load
+      if (!selectedGroupUuid && dbPath) {
+        const state = loadGroupTreeState(dbPath, groups.uuid);
+        setSelectedGroupUuid(state.selectedGroup || groups.uuid);
+        setInitialExpandedGroups(new Set(state.expandedGroups));
+      } else if (!selectedGroupUuid) {
         setSelectedGroupUuid(groups.uuid);
       }
     } catch (error: any) {
@@ -313,6 +324,8 @@ export function MainApp({ onClose }: MainAppProps) {
                   setSelectedGroupUuid(rootGroup.uuid);
                 }
               }}
+              dbPath={dbPath}
+              initialExpandedGroups={initialExpandedGroups}
             />
           )}
         </div>

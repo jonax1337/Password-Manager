@@ -26,6 +26,7 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
 import { getIconComponent, IconPicker } from "@/components/icon-picker";
+import { saveGroupTreeState } from "@/lib/group-state";
 import {
   DndContext,
   DragOverlay,
@@ -45,6 +46,8 @@ interface GroupTreeProps {
   onSelectGroup: (uuid: string) => void;
   onRefresh: () => void;
   onGroupDeleted?: (deletedUuid: string) => void;
+  dbPath: string;
+  initialExpandedGroups?: Set<string>;
 }
 
 export function GroupTree({
@@ -53,9 +56,11 @@ export function GroupTree({
   onSelectGroup,
   onRefresh,
   onGroupDeleted,
+  dbPath,
+  initialExpandedGroups,
 }: GroupTreeProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set([group.uuid])
+    initialExpandedGroups || new Set([group.uuid])
   );
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -68,6 +73,11 @@ export function GroupTree({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Save expanded groups to localStorage whenever they change
+  useEffect(() => {
+    saveGroupTreeState(dbPath, expandedGroups, selectedUuid);
+  }, [expandedGroups, selectedUuid, dbPath]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -102,7 +112,6 @@ export function GroupTree({
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
 
-    console.log('Creating group with icon ID:', newGroupIconId);
     try {
       await createGroup(newGroupName, parentUuid, newGroupIconId);
       toast({

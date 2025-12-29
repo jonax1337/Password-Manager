@@ -277,10 +277,7 @@ impl Database {
         
         // Set icon ID if provided
         if let Some(id) = icon_id {
-            println!("Setting group icon_id to: {}", id);
             new_group.icon_id = Some(id as usize);
-        } else {
-            println!("No icon_id provided, using default");
         }
 
         parent_group.add_child(new_group);
