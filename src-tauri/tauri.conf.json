@@ -51,6 +51,9 @@
           "permissions": [
             "core:default",
             "core:window:allow-close",
+            "core:window:allow-destroy",
+            "dialog:allow-ask",
+            "dialog:allow-confirm",
             "fs:allow-read-file",
             "fs:allow-write-file",
             "clipboard-manager:allow-write-text",

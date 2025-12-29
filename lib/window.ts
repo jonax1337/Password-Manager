@@ -23,7 +23,7 @@ export async function openEntryWindow(entry: EntryData, groupUuid: string) {
       title: entry.title || "Entry Editor",
       width: 500,
       height: 600,
-      resizable: true,
+      resizable: false,
       center: true,
     });
 

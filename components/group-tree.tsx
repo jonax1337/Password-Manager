@@ -65,6 +65,7 @@ export function GroupTree({
   const [parentUuid, setParentUuid] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [contextMenuGroupUuid, setContextMenuGroupUuid] = useState<string | null>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -295,6 +296,7 @@ export function GroupTree({
     const FolderIcon = getIconComponent(48);
     
     const isDropTarget = overId === g.uuid;
+    const isContextMenuOpen = contextMenuGroupUuid === g.uuid;
 
     return (
       <div key={g.uuid}>
@@ -308,11 +310,15 @@ export function GroupTree({
               cursor: isDragging ? 'grabbing' : 'default'
             }}
           >
-            <ContextMenu>
+            <ContextMenu
+              onOpenChange={(open) => {
+                setContextMenuGroupUuid(open ? g.uuid : null);
+              }}
+            >
               <ContextMenuTrigger asChild>
                 <div
                   className={`flex items-center gap-1 px-2 py-1.5 hover:bg-accent transition-all ${
-                    isSelected ? "bg-accent" : ""
+                    isSelected || isContextMenuOpen ? "bg-accent" : ""
                   } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""}`}
                   style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 >

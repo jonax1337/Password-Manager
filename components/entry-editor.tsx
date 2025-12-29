@@ -20,9 +20,10 @@ interface EntryEditorProps {
   entry: EntryData;
   onClose: () => void;
   onRefresh: () => void;
+  onHasChangesChange?: (hasChanges: boolean) => void;
 }
 
-export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
+export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: EntryEditorProps) {
   const [formData, setFormData] = useState<EntryData>(entry);
   const [showPassword, setShowPassword] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -36,6 +37,11 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
     // Load icon ID from entry.icon_id field
     setIconId(entry.icon_id ?? 0);
   }, [entry.uuid]);
+
+  // Notify parent when hasChanges state changes
+  useEffect(() => {
+    onHasChangesChange?.(hasChanges);
+  }, [hasChanges, onHasChangesChange]);
 
   const handleChange = (field: keyof EntryData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -137,25 +143,9 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <h2 className="text-lg font-semibold">{entry.title}</h2>
-        <div className="flex gap-2">
-          {hasChanges && (
-            <Button onClick={handleSave} size="sm">
-              <Save className="mr-2 h-4 w-4" />
-              Save
-            </Button>
-          )}
-          <Button onClick={handleDelete} variant="destructive" size="sm">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-        </div>
-      </div>
-
       <ScrollArea className="flex-1">
-        <div className="space-y-6 p-6">
-          <div className="space-y-2">
+        <div className="space-y-3 p-4 pb-6">
+          <div className="space-y-1">
             <Label htmlFor="title">Title</Label>
             <div className="flex gap-2">
               <IconPicker value={iconId} onChange={handleIconChange} />
@@ -169,9 +159,7 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="username">Username</Label>
             <div className="flex gap-2">
               <Input
@@ -191,7 +179,7 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="password">Password</Label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -228,7 +216,7 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
             <PasswordStrengthMeter password={formData.password} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="url">URL</Label>
             <div className="flex gap-2">
               <Input
@@ -248,20 +236,18 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="notes">Notes</Label>
             <textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => handleChange("notes", e.target.value)}
-              className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Additional notes..."
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="tags">Tags</Label>
             <Input
               id="tags"
@@ -272,6 +258,13 @@ export function EntryEditor({ entry, onClose, onRefresh }: EntryEditorProps) {
           </div>
         </div>
       </ScrollArea>
+
+      <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t bg-background px-4 py-3">
+        <Button onClick={handleSave} size="sm" disabled={!hasChanges}>
+          <Save className="mr-2 h-4 w-4" />
+          Save
+        </Button>
+      </div>
     </div>
   );
 }

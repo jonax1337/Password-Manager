@@ -11,13 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search } from "lucide-react";
-import { getEntries, createEntry } from "@/lib/tauri";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent } from "@/components/icon-picker";
+import { confirm } from "@tauri-apps/plugin-dialog";
 
 interface EntryListProps {
   groupUuid: string;
@@ -39,6 +46,7 @@ export function EntryList({
   const [entries, setEntries] = useState<EntryData[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEntryTitle, setNewEntryTitle] = useState("");
+  const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -104,6 +112,32 @@ export function EntryList({
     }
   };
 
+  const handleDeleteEntry = async (entry: EntryData) => {
+    const confirmed = await confirm(
+      `Are you sure you want to delete "${entry.title}"?`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteEntry(entry.uuid);
+      toast({
+        title: "Success",
+        description: "Entry deleted successfully",
+        variant: "success",
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to delete entry",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="flex h-full flex-col">
@@ -134,22 +168,40 @@ export function EntryList({
             {entries.map((entry) => {
               const iconId = entry.icon_id ?? 0;
               const EntryIcon = getIconComponent(iconId);
+              const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
               return (
-                <div
+                <ContextMenu 
                   key={entry.uuid}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
-                    selectedEntry?.uuid === entry.uuid ? "bg-accent" : ""
-                  }`}
-                  onDoubleClick={() => onSelectEntry(entry)}
+                  onOpenChange={(open) => {
+                    setContextMenuEntryUuid(open ? entry.uuid : null);
+                  }}
                 >
-                  <EntryIcon className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-sm font-medium">{entry.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {entry.username || "No username"}
-                    </p>
-                  </div>
-                </div>
+                  <ContextMenuTrigger>
+                    <div
+                      className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
+                        selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
+                      }`}
+                      onDoubleClick={() => onSelectEntry(entry)}
+                    >
+                      <EntryIcon className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1 overflow-hidden">
+                        <p className="truncate text-sm font-medium">{entry.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {entry.username || "No username"}
+                        </p>
+                      </div>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => handleDeleteEntry(entry)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
 

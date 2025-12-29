@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { EntryEditor } from "@/components/entry-editor";
 import type { EntryData } from "@/lib/tauri";
 import { getEntries } from "@/lib/tauri";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ask } from "@tauri-apps/plugin-dialog";
 
 export default function EntryPage() {
   const params = useParams();
   const uuid = params.uuid as string;
   const [entry, setEntry] = useState<EntryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const hasUnsavedChangesRef = useRef(false);
+  const isClosingRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     const loadEntry = async () => {
@@ -42,6 +52,47 @@ export default function EntryPage() {
       loadEntry();
     }
   }, [uuid]);
+
+  // Handle window close event with unsaved changes check
+  useEffect(() => {
+    const entryWindow = getCurrentWindow();
+    let unlisten: (() => void) | undefined;
+
+    const setupCloseHandler = async () => {
+      unlisten = await entryWindow.onCloseRequested(async (event) => {
+        // Skip prompt if already in closing process
+        if (isClosingRef.current) {
+          return;
+        }
+
+        if (hasUnsavedChangesRef.current) {
+          event.preventDefault();
+          
+          const shouldClose = await ask(
+            "You have unsaved changes. Are you sure you want to close this window?",
+            {
+              title: "Unsaved Changes",
+              kind: "warning",
+            }
+          );
+
+          if (shouldClose) {
+            // Set flag to prevent re-triggering prompt
+            isClosingRef.current = true;
+            await entryWindow.destroy();
+          }
+        }
+      });
+    };
+
+    setupCloseHandler();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []);
 
   const handleClose = () => {
     // Close this window
@@ -77,6 +128,7 @@ export default function EntryPage() {
         entry={entry}
         onClose={handleClose}
         onRefresh={handleRefresh}
+        onHasChangesChange={setHasUnsavedChanges}
       />
     </div>
   );
