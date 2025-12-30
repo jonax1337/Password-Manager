@@ -5,6 +5,18 @@ use std::path::PathBuf;
 use tauri::State;
 
 #[tauri::command]
+pub fn get_initial_file_path(state: State<AppState>) -> Option<String> {
+    let initial_path = state.initial_file_path.lock().unwrap();
+    initial_path.clone()
+}
+
+#[tauri::command]
+pub fn clear_initial_file_path(state: State<AppState>) {
+    let mut initial_path = state.initial_file_path.lock().unwrap();
+    *initial_path = None;
+}
+
+#[tauri::command]
 pub fn create_database(
     state: State<AppState>,
     path: String,

@@ -7,7 +7,7 @@ import { MainApp } from "@/components/main-app";
 import { Toaster } from "@/components/ui/toaster";
 import { getLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function Home() {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -17,24 +17,25 @@ export default function Home() {
   const [filePathFromAssociation, setFilePathFromAssociation] = useState<string | null>(null);
 
   useEffect(() => {
-    const lastPath = getLastDatabasePath();
-    setLastDatabasePath(lastPath);
-    setShowQuickUnlock(!!lastPath);
-    setIsChecking(false);
-  }, []);
-
-  // Listen for file association events
-  useEffect(() => {
-    const unlisten = listen<string>("open-database-file", (event) => {
-      console.log("Received file path from association:", event.payload);
-      setFilePathFromAssociation(event.payload);
-      setLastDatabasePath(event.payload);
-      setShowQuickUnlock(true);
-    });
-
-    return () => {
-      unlisten.then(fn => fn());
+    const initialize = async () => {
+      // Check if app was opened via file association
+      const initialFilePath = await invoke<string | null>("get_initial_file_path");
+      
+      if (initialFilePath) {
+        console.log("App opened via file association:", initialFilePath);
+        setFilePathFromAssociation(initialFilePath);
+        setShowQuickUnlock(false);
+      } else {
+        // No file association, check for last database path
+        const lastPath = getLastDatabasePath();
+        setLastDatabasePath(lastPath);
+        setShowQuickUnlock(!!lastPath);
+      }
+      
+      setIsChecking(false);
     };
+    
+    initialize();
   }, []);
 
   // Reset window title when on unlock screen
@@ -55,23 +56,24 @@ export default function Home() {
   return (
     <main className="h-screen w-screen overflow-hidden">
       {!isUnlocked ? (
-        showQuickUnlock && lastDatabasePath ? (
-          <QuickUnlockScreen
-            lastDatabasePath={lastDatabasePath}
-            onUnlock={() => {
+        // Prioritize file association path - always show UnlockScreen if a file was double-clicked
+        filePathFromAssociation ? (
+          <UnlockScreen 
+            onUnlock={async () => {
               setIsUnlocked(true);
               setFilePathFromAssociation(null);
-            }}
-            onCancel={() => {
-              setShowQuickUnlock(false);
-              setFilePathFromAssociation(null);
-            }}
-          />
-        ) : (
-          <UnlockScreen 
-            onUnlock={() => setIsUnlocked(true)} 
+              await invoke("clear_initial_file_path");
+            }} 
             initialFilePath={filePathFromAssociation}
           />
+        ) : showQuickUnlock && lastDatabasePath ? (
+          <QuickUnlockScreen
+            lastDatabasePath={lastDatabasePath}
+            onUnlock={() => setIsUnlocked(true)}
+            onCancel={() => setShowQuickUnlock(false)}
+          />
+        ) : (
+          <UnlockScreen onUnlock={() => setIsUnlocked(true)} />
         )
       ) : (
         <MainApp onClose={() => setIsUnlocked(false)} />

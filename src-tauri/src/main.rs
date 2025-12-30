@@ -7,7 +7,7 @@ mod state;
 
 use state::AppState;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
@@ -17,8 +17,11 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             database: Mutex::new(None),
+            initial_file_path: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
+            commands::get_initial_file_path,
+            commands::clear_initial_file_path,
             commands::create_database,
             commands::open_database,
             commands::save_database,
@@ -44,9 +47,10 @@ fn main() {
                 let file_path = &args[1];
                 if file_path.ends_with(".kdbx") {
                     println!("Opening database from file association: {}", file_path);
-                    // Emit event to frontend with the file path
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _: Result<(), tauri::Error> = window.emit("open-database-file", file_path.clone());
+                    
+                    // Store the file path in app state so it can be retrieved by the frontend
+                    if let Ok(mut initial_path) = app.state::<AppState>().initial_file_path.lock() {
+                        *initial_path = Some(file_path.clone());
                     }
                 }
             }
