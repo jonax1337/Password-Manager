@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +13,22 @@ import { saveLastDatabasePath } from "@/lib/storage";
 
 interface UnlockScreenProps {
   onUnlock: () => void;
+  initialFilePath?: string | null;
 }
 
-export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
+export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
   const [password, setPassword] = useState("");
-  const [filePath, setFilePath] = useState("");
+  const [filePath, setFilePath] = useState(initialFilePath || "");
   const [loading, setLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { toast } = useToast();
+
+  // Update file path when initialFilePath changes
+  useEffect(() => {
+    if (initialFilePath) {
+      setFilePath(initialFilePath);
+    }
+  }, [initialFilePath]);
 
   const handleSelectFile = async () => {
     try {

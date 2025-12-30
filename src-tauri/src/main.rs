@@ -7,6 +7,7 @@ mod state;
 
 use state::AppState;
 use std::sync::Mutex;
+use tauri::{Emitter, Manager};
 
 fn main() {
     tauri::Builder::default()
@@ -36,7 +37,19 @@ fn main() {
             commands::search_entries,
             commands::generate_password,
         ])
-        .setup(|_app| {
+        .setup(|app| {
+            // Handle file associations - check if app was opened with a .kdbx file
+            let args: Vec<String> = std::env::args().collect();
+            if args.len() > 1 {
+                let file_path = &args[1];
+                if file_path.ends_with(".kdbx") {
+                    println!("Opening database from file association: {}", file_path);
+                    // Emit event to frontend with the file path
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _: Result<(), tauri::Error> = window.emit("open-database-file", file_path.clone());
+                    }
+                }
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
