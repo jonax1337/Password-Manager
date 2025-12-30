@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, Save, Copy, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Save, Copy, Trash2, Edit } from "lucide-react";
 import { updateEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -184,6 +184,14 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
 
   return (
     <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <h1 className="text-lg font-semibold">Edit Entry</h1>
+        <Button variant="ghost" size="icon" className="pointer-events-none">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </div>
+
       <ScrollArea className="flex-1">
         <div className="space-y-3 p-4 pb-6">
           <div className="space-y-1">
@@ -307,7 +315,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </div>
       </ScrollArea>
 
-      <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t bg-background px-4 py-3">
+      <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background px-4 py-3">
         <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError}>
           <Save className="mr-2 h-4 w-4" />
           Save

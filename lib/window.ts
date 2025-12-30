@@ -22,7 +22,7 @@ export async function openEntryWindow(entry: EntryData, groupUuid: string) {
       url: `${baseUrl}/entry?uuid=${entry.uuid}&groupUuid=${encodeURIComponent(groupUuid)}`,
       title: "Edit Entry",
       width: 500,
-      height: 650,
+      height: 700,
       resizable: false,
       center: true,
     });

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { X, Moon, Sun, Monitor } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Monitor } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
 import {
@@ -47,8 +47,8 @@ export function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h1 className="text-lg font-semibold">Settings</h1>
-        <Button variant="ghost" size="icon" onClick={handleClose}>
-          <X className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="pointer-events-none">
+          <SettingsIcon className="h-4 w-4" />
         </Button>
       </div>
 
