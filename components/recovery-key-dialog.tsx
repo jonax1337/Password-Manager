@@ -33,7 +33,7 @@ export function RecoveryKeyDialog({
 
   const handlePrint = () => {
     // Create a printable view
-    const printWindow = window.open("", "_blank");
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (printWindow) {
       // Escape HTML to prevent XSS
       const escapeHtml = (text: string) => {
