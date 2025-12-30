@@ -47,6 +47,8 @@ export function MainApp({ onClose }: MainAppProps) {
   const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
   const [initialExpandedGroups, setInitialExpandedGroups] = useState<Set<string> | undefined>(undefined);
   const isDirtyRef = useRef(isDirty);
+  const lastActivityRef = useRef<number>(Date.now());
+  const autoLockTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
@@ -97,6 +99,53 @@ export function MainApp({ onClose }: MainAppProps) {
     };
     updateTitle();
   }, [dbPath, isDirty]);
+
+  // Auto-lock functionality
+  useEffect(() => {
+    const autoLockMinutes = parseInt(localStorage.getItem("autoLockMinutes") || "0");
+    
+    if (autoLockMinutes === 0) {
+      // Auto-lock disabled
+      if (autoLockTimerRef.current) {
+        clearInterval(autoLockTimerRef.current);
+        autoLockTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Update last activity on user interaction
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    // Track user activity
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('scroll', updateActivity);
+
+    // Check inactivity every 10 seconds
+    autoLockTimerRef.current = setInterval(() => {
+      const inactiveTime = Date.now() - lastActivityRef.current;
+      const autoLockMs = autoLockMinutes * 60 * 1000;
+
+      if (inactiveTime >= autoLockMs) {
+        console.log('Auto-lock triggered due to inactivity');
+        performClose();
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+      
+      if (autoLockTimerRef.current) {
+        clearInterval(autoLockTimerRef.current);
+      }
+    };
+  }, []);
 
   // Listen for entry updates from child windows
   useEffect(() => {
