@@ -2,7 +2,7 @@
 name = "simple-password-manager"
 version = "1.0.0"
 description = "A simple and secure password manager"
-authors = ["you"]
+authors = ["Jonas Laux"]
 edition = "2021"
 
 [build-dependencies]

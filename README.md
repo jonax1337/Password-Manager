@@ -70,3 +70,11 @@ Builds are located in `src-tauri/target/release/bundle/`
 This software has not undergone a professional security audit. Use at your own risk. For critical password management, consider [KeePass](https://keepass.info/) or [KeePassXC](https://keepassxc.org/).
 
 Not affiliated with or endorsed by the official KeePass project.
+
+## Author
+
+**Jonas Laux**
+
+## License
+
+MIT License - See LICENSE file for details

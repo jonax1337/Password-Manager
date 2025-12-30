@@ -1,6 +1,7 @@
 {
   "name": "simple-password-manager",
   "version": "1.0.0",
+  "author": "Jonas Laux",
   "private": true,
   "scripts": {
     "dev": "next dev",
