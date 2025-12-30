@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink, X } from "lucide-react";
+import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink, X, Edit, User, Key } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ContextMenuSeparator } from "@/components/ui/context-menu";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
@@ -301,7 +302,7 @@ export function EntryList({
                 className="h-7 text-xs"
               >
                 <X className="h-3 w-3 mr-1" />
-                Deselect
+                Clear
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -475,12 +476,32 @@ export function EntryList({
                           </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
+                          <ContextMenuItem onClick={() => onSelectEntry(entry)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Entry
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem 
+                            onClick={() => handleCopyField(entry.username, "Username", entry.uuid)}
+                            disabled={!entry.username}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            Copy Username
+                          </ContextMenuItem>
+                          <ContextMenuItem 
+                            onClick={() => handleCopyField(entry.password, "Password", entry.uuid)}
+                            disabled={!entry.password}
+                          >
+                            <Key className="mr-2 h-4 w-4" />
+                            Copy Password
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
                           <ContextMenuItem
                             className="text-red-600 focus:text-red-600"
                             onClick={() => handleDeleteEntry(entry)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            Delete Entry
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
