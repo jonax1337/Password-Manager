@@ -94,7 +94,7 @@ export function CreateDatabaseDialog({
         : `${fileName}.kdbx`;
       const fullPath = `${folderPath}\\${fileNameWithExt}`;
 
-      const result = await createDatabase(fullPath, password);
+      await createDatabase(fullPath, password);
       saveLastDatabasePath(fullPath);
       
       toast({
@@ -103,8 +103,8 @@ export function CreateDatabaseDialog({
         variant: "success",
       });
       
-      // Store recovery key and show recovery dialog
-      setRecoveryKey(result.recovery_key);
+      // Store master password and show backup dialog
+      setRecoveryKey(password);
       setShowRecoveryDialog(true);
       
       setFolderPath("");
@@ -235,7 +235,7 @@ export function CreateDatabaseDialog({
       {recoveryKey && (
         <RecoveryKeyDialog
           isOpen={showRecoveryDialog}
-          recoveryKey={recoveryKey}
+          masterPassword={recoveryKey}
           databaseName={fileName || "Database"}
           onClose={handleRecoveryDialogClose}
         />
