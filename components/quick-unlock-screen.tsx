@@ -23,10 +23,6 @@ export function QuickUnlockScreen({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const getFileName = (path: string) => {
-    return path.split("\\").pop()?.split("/").pop() || path;
-  };
-
   const handleUnlock = async () => {
     if (!password) {
       toast({
@@ -75,8 +71,8 @@ export function QuickUnlockScreen({
             <Lock className="h-6 w-6 text-primary-foreground" />
           </div>
           <h2 className="text-xl font-semibold">Quick Unlock</h2>
-          <p className="text-center text-sm text-muted-foreground">
-            {getFileName(lastDatabasePath)}
+          <p className="text-center text-xs text-muted-foreground break-all px-2">
+            {lastDatabasePath}
           </p>
         </div>
 

@@ -36,6 +36,8 @@
             "core:window:allow-create",
             "core:window:allow-set-focus",
             "core:webview:allow-create-webview-window",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
             "dialog:allow-open",
             "dialog:allow-save",
             "dialog:allow-ask",
