@@ -74,6 +74,11 @@ export function EntryList({
     }
   }, [searchResults, isSearching]);
 
+  // Clear selection when switching groups or search mode
+  useEffect(() => {
+    setSelectedEntries(new Set());
+  }, [groupUuid, isSearching]);
+
   const loadEntries = async () => {
     if (!groupUuid) return;
 
