@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink, X, Edit, User, Key } from "lucide-react";
+import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenuSeparator } from "@/components/ui/context-menu";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
@@ -55,7 +55,6 @@ export function EntryList({
   const [newEntryTitle, setNewEntryTitle] = useState("");
   const [newEntryIconId, setNewEntryIconId] = useState(0);
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [clearTimeoutId, setClearTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const { toast } = useToast();
@@ -249,25 +248,22 @@ export function EntryList({
     }
 
     try {
+      await writeText(text);
+
       // Clear any existing timeout
       if (clearTimeoutId) {
         clearTimeout(clearTimeoutId);
       }
 
-      await writeText(text);
-      const fieldKey = `${entryUuid}-${fieldName}`;
-      setCopiedField(fieldKey);
-
       toast({
         title: "Copied",
-        description: `${fieldName} copied - will clear in 30s`,
+        description: `${fieldName} copied to clipboard - will clear in 30s`,
         variant: "info",
       });
 
       // Auto-clear after 30 seconds
       const timeoutId = setTimeout(async () => {
         await writeText("");
-        setCopiedField(null);
         toast({
           title: "Clipboard cleared",
           description: "Clipboard has been cleared for security",
@@ -276,11 +272,6 @@ export function EntryList({
       }, 30000);
 
       setClearTimeoutId(timeoutId);
-
-      // Clear copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedField(null);
-      }, 2000);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -384,8 +375,6 @@ export function EntryList({
                     const iconId = entry.icon_id ?? 0;
                     const EntryIcon = getIconComponent(iconId);
                     const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
-                    const usernameCopied = copiedField === `${entry.uuid}-Username`;
-                    const passwordCopied = copiedField === `${entry.uuid}-Password`;
                     
                     return (
                       <ContextMenu 
@@ -424,30 +413,24 @@ export function EntryList({
                             
                             {/* Username */}
                             <div 
-                              className="flex items-center gap-2 cursor-pointer overflow-hidden"
+                              className="cursor-pointer overflow-hidden"
                               onDoubleClick={() => handleCopyField(entry.username, "Username", entry.uuid)}
                               title="Double-click to copy"
                             >
-                              <p className="truncate text-sm text-muted-foreground flex-1">
+                              <p className="truncate text-sm text-muted-foreground">
                                 {entry.username || "—"}
                               </p>
-                              {usernameCopied && (
-                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                              )}
                             </div>
                             
                             {/* Password */}
                             <div 
-                              className="flex items-center gap-2 cursor-pointer overflow-hidden"
+                              className="cursor-pointer overflow-hidden"
                               onDoubleClick={() => handleCopyField(entry.password, "Password", entry.uuid)}
                               title="Double-click to copy"
                             >
-                              <p className="truncate text-sm text-muted-foreground font-mono flex-1">
+                              <p className="truncate text-sm text-muted-foreground font-mono">
                                 {entry.password ? "••••••••" : "—"}
                               </p>
-                              {passwordCopied && (
-                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                              )}
                             </div>
                             
                             {/* URL */}
