@@ -15,7 +15,7 @@ This repository contains a modern KeePass-compatible password manager built with
 ### Backend
 - **Framework**: Tauri 2.0
 - **Language**: Rust (edition 2021)
-- **Database**: keepass-rs library for KDBX 3 & 4 support
+- **Database**: keepass crate (v0.7) for KDBX 3 & 4 support
 - **Security**: secrecy crate for sensitive data handling
 
 ## Project Structure
