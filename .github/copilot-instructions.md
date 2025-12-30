@@ -38,7 +38,7 @@ This repository contains a modern KeePass-compatible password manager built with
 - Import UI components from `@/components/ui/`
 - Import types from `@/lib/` modules
 - Use camelCase for variables and functions
-- Use PascalCase for components and types
+- Use kebab-case for components and types
 - Destructure props in component parameters
 - Use optional chaining and nullish coalescing for safety
 
