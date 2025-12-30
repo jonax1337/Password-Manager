@@ -28,6 +28,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   const [showPassword, setShowPassword] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [iconId, setIconId] = useState(0);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,9 +44,71 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     onHasChangesChange?.(hasChanges);
   }, [hasChanges, onHasChangesChange]);
 
+  const validateUrl = (url: string): boolean => {
+    if (!url || url.trim() === "") {
+      setUrlError(null);
+      return true; // Empty URL is valid
+    }
+
+    try {
+      // Add https:// if no protocol
+      const urlToTest = url.match(/^https?:\/\//) ? url : `https://${url}`;
+      const urlObj = new URL(urlToTest);
+      
+      // Check if it has a valid hostname
+      if (!urlObj.hostname || urlObj.hostname.length === 0) {
+        setUrlError("Invalid URL format");
+        return false;
+      }
+      
+      // Check if it's an IP address (IPv4 or IPv6)
+      const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+      const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+      const isIpAddress = ipv4Regex.test(urlObj.hostname) || ipv6Regex.test(urlObj.hostname);
+      
+      // Allow localhost and IP addresses
+      if (urlObj.hostname === "localhost" || isIpAddress) {
+        setUrlError(null);
+        return true;
+      }
+      
+      // Check for at least one dot in hostname (e.g., example.com)
+      if (!urlObj.hostname.includes(".")) {
+        setUrlError("URL must be a valid domain (e.g., example.com)");
+        return false;
+      }
+      
+      // Check that domain contains at least one letter (reject pure numbers like 123.de)
+      const domainParts = urlObj.hostname.split(".");
+      const hasLetter = domainParts.some(part => /[a-zA-Z]/.test(part));
+      if (!hasLetter) {
+        setUrlError("Domain must contain at least one letter");
+        return false;
+      }
+      
+      // Validate domain name format (letters, numbers, hyphens)
+      const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/;
+      if (!domainRegex.test(urlObj.hostname)) {
+        setUrlError("Invalid domain format");
+        return false;
+      }
+      
+      setUrlError(null);
+      return true;
+    } catch (error) {
+      setUrlError("Invalid URL format");
+      return false;
+    }
+  };
+
   const handleChange = (field: keyof EntryData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
+    
+    // Validate URL field
+    if (field === "url") {
+      validateUrl(value);
+    }
   };
 
   const handleIconChange = (newIconId: number) => {
@@ -59,6 +122,16 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   };
 
   const handleSave = async () => {
+    // Validate URL before saving
+    if (!validateUrl(formData.url)) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid URL or leave it empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Always ensure we're saving with the correct UUID
     const dataToSave = {
       ...formData,
@@ -187,12 +260,19 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
           <div className="space-y-1">
             <Label htmlFor="url">URL</Label>
             <div className="flex gap-2">
-              <Input
-                id="url"
-                value={formData.url}
-                onChange={(e) => handleChange("url", e.target.value)}
-                className="flex-1"
-              />
+              <div className="flex-1 space-y-1">
+                <Input
+                  id="url"
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => handleChange("url", e.target.value)}
+                  className={urlError ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  placeholder="https://example.com"
+                />
+                {urlError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{urlError}</p>
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="icon"
@@ -228,7 +308,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       </ScrollArea>
 
       <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t bg-background px-4 py-3">
-        <Button onClick={handleSave} size="sm" disabled={!hasChanges}>
+        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError}>
           <Save className="mr-2 h-4 w-4" />
           Save
         </Button>

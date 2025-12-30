@@ -268,6 +268,22 @@ export function MainApp({ onClose }: MainAppProps) {
     // Don't clear selected entry - keep it open after refresh
   };
 
+  const getGroupPath = (root: GroupData, targetUuid: string): string => {
+    const findPath = (g: GroupData, uuid: string, path: string[]): string[] | null => {
+      if (g.uuid === uuid) {
+        return [...path, g.name];
+      }
+      for (const child of g.children) {
+        const result = findPath(child, uuid, [...path, g.name]);
+        if (result) return result;
+      }
+      return null;
+    };
+    
+    const path = findPath(root, targetUuid, []);
+    return path ? path.join(" / ") : "";
+  };
+
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex items-center gap-4 border-b px-4 py-3">
@@ -344,6 +360,11 @@ export function MainApp({ onClose }: MainAppProps) {
             onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
             onRefresh={handleRefresh}
             isSearching={isSearching}
+            selectedGroupName={
+              rootGroup && selectedGroupUuid 
+                ? getGroupPath(rootGroup, selectedGroupUuid)
+                : undefined
+            }
           />
         </div>
       </div>

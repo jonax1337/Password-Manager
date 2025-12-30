@@ -19,13 +19,15 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink } from "lucide-react";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent, IconPicker } from "@/components/icon-picker";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { openEntryWindow } from "@/lib/window";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { open } from "@tauri-apps/plugin-shell";
 
 interface EntryListProps {
   groupUuid: string;
@@ -34,6 +36,7 @@ interface EntryListProps {
   onSelectEntry: (entry: EntryData) => void;
   onRefresh: () => void;
   isSearching?: boolean;
+  selectedGroupName?: string;
 }
 
 export function EntryList({
@@ -43,12 +46,15 @@ export function EntryList({
   onSelectEntry,
   onRefresh,
   isSearching = false,
+  selectedGroupName,
 }: EntryListProps) {
   const [entries, setEntries] = useState<EntryData[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEntryTitle, setNewEntryTitle] = useState("");
   const [newEntryIconId, setNewEntryIconId] = useState(0);
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [clearTimeoutId, setClearTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -152,24 +158,99 @@ export function EntryList({
     }
   };
 
+  const handleOpenUrl = async (url: string) => {
+    if (!url) return;
+    
+    try {
+      // Add https:// if no protocol specified
+      const fullUrl = url.match(/^https?:\/\//) ? url : `https://${url}`;
+      await open(fullUrl);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to open URL",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyField = async (text: string, fieldName: string, entryUuid: string) => {
+    if (!text) {
+      toast({
+        title: "Nothing to copy",
+        description: `${fieldName} is empty`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Clear any existing timeout
+      if (clearTimeoutId) {
+        clearTimeout(clearTimeoutId);
+      }
+
+      await writeText(text);
+      const fieldKey = `${entryUuid}-${fieldName}`;
+      setCopiedField(fieldKey);
+
+      toast({
+        title: "Copied",
+        description: `${fieldName} copied - will clear in 30s`,
+        variant: "info",
+      });
+
+      // Auto-clear after 30 seconds
+      const timeoutId = setTimeout(async () => {
+        await writeText("");
+        setCopiedField(null);
+        toast({
+          title: "Clipboard cleared",
+          description: "Clipboard has been cleared for security",
+          variant: "default",
+        });
+      }, 30000);
+
+      setClearTimeoutId(timeoutId);
+
+      // Clear copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedField(null);
+      }, 2000);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b px-4 py-2">
-          <h2 className="text-sm font-semibold">
-            {isSearching
-              ? `Search Results (${entries.length})`
-              : `Entries (${entries.length})`}
-          </h2>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h2 className="text-sm font-semibold">
+              {isSearching
+                ? `Search Results (${entries.length})`
+                : `Entries (${entries.length})`}
+            </h2>
+            {!isSearching && selectedGroupName && (
+              <span className="text-xs text-muted-foreground truncate">
+                {selectedGroupName}
+              </span>
+            )}
+          </div>
           {isSearching ? (
-            <div className="h-7 w-7 flex items-center justify-center">
+            <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">
               <Search className="h-4 w-4 text-muted-foreground" />
             </div>
           ) : groupUuid && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 flex-shrink-0"
               onClick={() => setShowCreateDialog(true)}
             >
               <Plus className="h-4 w-4" />
@@ -180,57 +261,133 @@ export function EntryList({
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <ScrollArea className="flex-1">
-              <div className="space-y-1 p-2 min-h-full">
-                {entries.map((entry) => {
-                  const iconId = entry.icon_id ?? 0;
-                  const EntryIcon = getIconComponent(iconId);
-                  const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
-                  return (
-                    <ContextMenu 
-                      key={entry.uuid}
-                      onOpenChange={(open) => {
-                        setContextMenuEntryUuid(open ? entry.uuid : null);
-                      }}
-                    >
-                      <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
-                        <div
-                          className={`flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent ${
-                            selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
-                          }`}
-                          onDoubleClick={() => onSelectEntry(entry)}
-                        >
-                      <EntryIcon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-sm font-medium">{entry.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {entry.username || "No username"}
-                        </p>
-                      </div>
-                    </div>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem
-                      className="text-red-600 focus:text-red-600"
-                      onClick={() => handleDeleteEntry(entry)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              );
-            })}
-
-                {entries.length === 0 && (
-                  <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                    {isSearching
-                      ? "No results found"
-                      : groupUuid
-                      ? "No entries in this group"
-                      : "Select a group to view entries"}
+              {entries.length > 0 ? (
+                <div className="min-h-full">
+                  {/* Header */}
+                  <div className="sticky top-0 z-10 grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+                    <div className="w-8"></div>
+                    <div>Title</div>
+                    <div>Username</div>
+                    <div>Password</div>
+                    <div>URL</div>
+                    <div className="hidden xl:block">Notes</div>
+                    <div className="w-8"></div>
                   </div>
-                )}
-              </div>
+                  
+                  {/* Entries */}
+                  {entries.map((entry) => {
+                    const iconId = entry.icon_id ?? 0;
+                    const EntryIcon = getIconComponent(iconId);
+                    const isContextMenuOpen = contextMenuEntryUuid === entry.uuid;
+                    const usernameCopied = copiedField === `${entry.uuid}-Username`;
+                    const passwordCopied = copiedField === `${entry.uuid}-Password`;
+                    
+                    return (
+                      <ContextMenu 
+                        key={entry.uuid}
+                        onOpenChange={(open) => {
+                          setContextMenuEntryUuid(open ? entry.uuid : null);
+                        }}
+                      >
+                        <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
+                          <div
+                            className={`grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b px-4 py-2.5 hover:bg-accent ${
+                              selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
+                            }`}
+                          >
+                            {/* Icon */}
+                            <div className="flex items-center w-8">
+                              <EntryIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            
+                            {/* Title */}
+                            <div 
+                              className="flex items-center cursor-pointer overflow-hidden"
+                              onDoubleClick={() => onSelectEntry(entry)}
+                            >
+                              <p className="truncate text-sm font-medium">{entry.title}</p>
+                            </div>
+                            
+                            {/* Username */}
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer overflow-hidden"
+                              onDoubleClick={() => handleCopyField(entry.username, "Username", entry.uuid)}
+                              title="Double-click to copy"
+                            >
+                              <p className="truncate text-sm text-muted-foreground flex-1">
+                                {entry.username || "—"}
+                              </p>
+                              {usernameCopied && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              )}
+                            </div>
+                            
+                            {/* Password */}
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer overflow-hidden"
+                              onDoubleClick={() => handleCopyField(entry.password, "Password", entry.uuid)}
+                              title="Double-click to copy"
+                            >
+                              <p className="truncate text-sm text-muted-foreground font-mono flex-1">
+                                {entry.password ? "••••••••" : "—"}
+                              </p>
+                              {passwordCopied && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              )}
+                            </div>
+                            
+                            {/* URL */}
+                            <div className="flex items-center gap-1 overflow-hidden">
+                              {entry.url ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenUrl(entry.url);
+                                  }}
+                                  className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline truncate group"
+                                  title={entry.url}
+                                >
+                                  <span className="truncate">{entry.url}</span>
+                                  <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            
+                            {/* Notes */}
+                            <div className="hidden xl:flex items-center overflow-hidden">
+                              <p className="truncate text-sm text-muted-foreground" title={entry.notes}>
+                                {entry.notes || "—"}
+                              </p>
+                            </div>
+                            
+                            {/* Spacer for alignment */}
+                            <div className="w-8"></div>
+                          </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem
+                            className="text-red-600 focus:text-red-600"
+                            onClick={() => handleDeleteEntry(entry)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                  {isSearching
+                    ? "No results found"
+                    : groupUuid
+                    ? "No entries in this group"
+                    : "Select a group to view entries"}
+                </div>
+              )}
             </ScrollArea>
           </ContextMenuTrigger>
           <ContextMenuContent>

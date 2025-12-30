@@ -46,7 +46,8 @@
             "fs:allow-write-file",
             "fs:allow-read-dir",
             "clipboard-manager:allow-write-text",
-            "clipboard-manager:allow-clear"
+            "clipboard-manager:allow-clear",
+            "shell:allow-open"
           ]
         },
         {

@@ -346,7 +346,7 @@ export function GroupTree({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 p-0"
+                className={`h-5 w-5 p-0 ${!hasChildren ? 'pointer-events-none hover:bg-transparent' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   hasChildren && toggleExpand(g.uuid);
