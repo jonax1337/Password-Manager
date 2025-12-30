@@ -21,7 +21,7 @@ pub fn create_database(
 
     let root_group = db.get_root_group();
     
-    // Generate a recovery key (64-character random hex string)
+    // Generate a recovery key (32-character alphanumeric key)
     let recovery_key = generate_recovery_key();
 
     let mut database_lock = state.database.lock().unwrap();
