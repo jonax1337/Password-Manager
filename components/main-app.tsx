@@ -12,13 +12,14 @@ import {
   Sun,
   LogOut,
   Save,
+  Settings,
 } from "lucide-react";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { saveDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
-import { openEntryWindow } from "@/lib/window";
+import { openEntryWindow, openSettingsWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
 import { closeDatabase, getGroups, searchEntries } from "@/lib/tauri";
@@ -301,24 +302,20 @@ export function MainApp({ onClose }: MainAppProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={handleSave}
             title={isDirty ? "Save database (unsaved changes)" : "Save database"}
             className={isDirty ? "text-orange-500" : ""}
           >
             <Save className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openSettingsWindow()}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
           </Button>
 
           <Button variant="ghost" size="icon" onClick={handleClose} title="Logout">

@@ -42,3 +42,41 @@ export async function openEntryWindow(entry: EntryData, groupUuid: string) {
     throw error;
   }
 }
+
+export async function openSettingsWindow() {
+  try {
+    const windowLabel = "settings";
+    
+    // Check if window already exists
+    const existingWindow = await WebviewWindow.getByLabel(windowLabel);
+    if (existingWindow) {
+      await existingWindow.setFocus();
+      return;
+    }
+
+    const isDev = process.env.NODE_ENV === 'development';
+    const baseUrl = isDev ? 'http://localhost:3000' : window.location.origin;
+    
+    const webview = new WebviewWindow(windowLabel, {
+      url: `${baseUrl}/settings`,
+      title: "Settings",
+      width: 600,
+      height: 500,
+      resizable: false,
+      center: true,
+    });
+
+    console.log('Creating settings window');
+    
+    webview.once("tauri://created", () => {
+      console.log("Settings window created successfully");
+    });
+
+    webview.once("tauri://error", (e) => {
+      console.error("Error creating settings window:", e);
+    });
+  } catch (error) {
+    console.error("Failed to open settings window:", error);
+    throw error;
+  }
+}
