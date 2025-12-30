@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { saveLastDatabasePath } from "@/lib/storage";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
+import { RecoveryKeyDialog } from "@/components/recovery-key-dialog";
 
 interface CreateDatabaseDialogProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export function CreateDatabaseDialog({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const { toast } = useToast();
 
   const handleSelectFolder = async () => {
@@ -91,7 +94,7 @@ export function CreateDatabaseDialog({
         : `${fileName}.kdbx`;
       const fullPath = `${folderPath}\\${fileNameWithExt}`;
 
-      await createDatabase(fullPath, password);
+      const result = await createDatabase(fullPath, password);
       saveLastDatabasePath(fullPath);
       
       toast({
@@ -99,6 +102,10 @@ export function CreateDatabaseDialog({
         description: "Database created successfully",
         variant: "success",
       });
+      
+      // Store recovery key and show recovery dialog
+      setRecoveryKey(result.recovery_key);
+      setShowRecoveryDialog(true);
       
       setFolderPath("");
       setFileName("");
@@ -118,6 +125,11 @@ export function CreateDatabaseDialog({
     }
   };
 
+  const handleRecoveryDialogClose = () => {
+    setShowRecoveryDialog(false);
+    setRecoveryKey(null);
+  };
+
   const handleClose = () => {
     if (!loading) {
       setFolderPath("");
@@ -129,94 +141,105 @@ export function CreateDatabaseDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Create New Database</DialogTitle>
-          <DialogDescription>
-            Create a new KeePass database file. Choose a secure master password
-            to protect your data.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Create New Database</DialogTitle>
+            <DialogDescription>
+              Create a new KeePass database file. Choose a secure master password
+              to protect your data.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="folder">Save Location</Label>
-            <div className="flex gap-2">
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="folder">Save Location</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="folder"
+                  value={folderPath}
+                  placeholder="Select folder..."
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSelectFolder}
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="filename">Database Name</Label>
               <Input
-                id="folder"
-                value={folderPath}
-                placeholder="Select folder..."
-                readOnly
-                className="flex-1"
+                id="filename"
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder="MyDatabase"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleSelectFolder}
-              >
-                <FolderOpen className="h-4 w-4" />
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                .kdbx extension will be added automatically
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Master Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Choose a strong password"
+              />
+              <PasswordStrengthMeter password={password} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">Confirm Password</Label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                placeholder="Confirm your password"
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="filename">Database Name</Label>
-            <Input
-              id="filename"
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="MyDatabase"
-            />
-            <p className="text-xs text-muted-foreground">
-              .kdbx extension will be added automatically
-            </p>
-          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={
+                loading ||
+                !folderPath ||
+                !fileName ||
+                !password ||
+                !confirmPassword
+              }
+            >
+              {loading ? "Creating..." : "Create Database"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="space-y-2">
-            <Label htmlFor="new-password">Master Password</Label>
-            <Input
-              id="new-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Choose a strong password"
-            />
-            <PasswordStrengthMeter password={password} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirm-new-password">Confirm Password</Label>
-            <Input
-              id="confirm-new-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              placeholder="Confirm your password"
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={
-              loading ||
-              !folderPath ||
-              !fileName ||
-              !password ||
-              !confirmPassword
-            }
-          >
-            {loading ? "Creating..." : "Create Database"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {recoveryKey && (
+        <RecoveryKeyDialog
+          isOpen={showRecoveryDialog}
+          recoveryKey={recoveryKey}
+          databaseName={fileName || "Database"}
+          onClose={handleRecoveryDialogClose}
+        />
+      )}
+    </>
   );
 }

@@ -20,7 +20,12 @@ export interface GroupData {
   icon_id?: number;
 }
 
-export async function createDatabase(path: string, password: string): Promise<GroupData> {
+export interface DatabaseCreationResult {
+  root_group: GroupData;
+  recovery_key: string;
+}
+
+export async function createDatabase(path: string, password: string): Promise<DatabaseCreationResult> {
   return invoke("create_database", { path, password });
 }
 

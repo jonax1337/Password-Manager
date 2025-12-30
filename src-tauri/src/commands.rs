@@ -3,21 +3,53 @@ use crate::state::AppState;
 use rand::Rng;
 use std::path::PathBuf;
 use tauri::State;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct DatabaseCreationResult {
+    pub root_group: GroupData,
+    pub recovery_key: String,
+}
 
 #[tauri::command]
 pub fn create_database(
     state: State<AppState>,
     path: String,
     password: String,
-) -> Result<GroupData, String> {
+) -> Result<DatabaseCreationResult, String> {
     let db = Database::create(PathBuf::from(&path), password).map_err(|e| e.to_string())?;
 
     let root_group = db.get_root_group();
+    
+    // Generate a recovery key (64-character random hex string)
+    let recovery_key = generate_recovery_key();
 
     let mut database_lock = state.database.lock().unwrap();
     *database_lock = Some(db);
 
-    Ok(root_group)
+    Ok(DatabaseCreationResult {
+        root_group,
+        recovery_key,
+    })
+}
+
+fn generate_recovery_key() -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let mut rng = rand::thread_rng();
+    
+    // Generate a 32-character recovery key in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+    let segments: Vec<String> = (0..8)
+        .map(|_| {
+            (0..4)
+                .map(|_| {
+                    let idx = rng.gen_range(0..CHARSET.len());
+                    CHARSET[idx] as char
+                })
+                .collect()
+        })
+        .collect();
+    
+    segments.join("-")
 }
 
 #[tauri::command]
