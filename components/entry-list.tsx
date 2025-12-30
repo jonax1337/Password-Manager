@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink } from "lucide-react";
+import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink, X } from "lucide-react";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
@@ -55,6 +55,7 @@ export function EntryList({
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [clearTimeoutId, setClearTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -158,6 +159,62 @@ export function EntryList({
     }
   };
 
+  const handleBulkDelete = async () => {
+    const count = selectedEntries.size;
+    const shouldDelete = await ask(
+      `Are you sure you want to delete ${count} ${count === 1 ? 'entry' : 'entries'}?`,
+      { kind: "warning", title: "Delete Entries" }
+    );
+    
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      // Delete all selected entries
+      await Promise.all(
+        Array.from(selectedEntries).map(uuid => deleteEntry(uuid))
+      );
+      
+      toast({
+        title: "Success",
+        description: `${count} ${count === 1 ? 'entry' : 'entries'} deleted successfully`,
+        variant: "success",
+      });
+      
+      setSelectedEntries(new Set());
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to delete entries",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleSelectEntry = (uuid: string) => {
+    const newSelected = new Set(selectedEntries);
+    if (newSelected.has(uuid)) {
+      newSelected.delete(uuid);
+    } else {
+      newSelected.add(uuid);
+    }
+    setSelectedEntries(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEntries.size === entries.length && entries.length > 0) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(entries.map(e => e.uuid)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedEntries(new Set());
+  };
+
   const handleOpenUrl = async (url: string) => {
     if (!url) return;
     
@@ -229,34 +286,68 @@ export function EntryList({
   return (
     <>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-4 py-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h2 className="text-sm font-semibold">
-              {isSearching
-                ? `Search Results (${entries.length})`
-                : `Entries (${entries.length})`}
-            </h2>
-            {!isSearching && selectedGroupName && (
-              <span className="text-xs text-muted-foreground truncate">
-                {selectedGroupName}
+        {/* Selection Toolbar */}
+        {selectedEntries.size > 0 && (
+          <div className="flex items-center justify-between border-b px-4 py-2 bg-blue-50 dark:bg-blue-950/30">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">
+                {selectedEntries.size} selected
               </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="h-7 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="h-7 text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete {selectedEntries.size > 1 ? 'All' : ''}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Normal Header */}
+        {selectedEntries.size === 0 && (
+          <div className="flex items-center justify-between border-b px-4 py-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h2 className="text-sm font-semibold">
+                {isSearching
+                  ? `Search Results (${entries.length})`
+                  : `Entries (${entries.length})`}
+              </h2>
+              {!isSearching && selectedGroupName && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {selectedGroupName}
+                </span>
+              )}
+            </div>
+            {isSearching ? (
+              <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </div>
+            ) : groupUuid && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0"
+                onClick={() => setShowCreateDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             )}
           </div>
-          {isSearching ? (
-            <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-          ) : groupUuid && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 flex-shrink-0"
-              onClick={() => setShowCreateDialog(true)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        )}
 
         <ContextMenu>
           <ContextMenuTrigger asChild>
@@ -264,7 +355,16 @@ export function EntryList({
               {entries.length > 0 ? (
                 <div className="min-h-full">
                   {/* Header */}
-                  <div className="sticky top-0 z-10 grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+                  <div className="sticky top-0 z-10 grid grid-cols-[auto_auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+                    <div className="w-8 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntries.size === entries.length && entries.length > 0}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        title="Select all"
+                      />
+                    </div>
                     <div className="w-8"></div>
                     <div>Title</div>
                     <div>Username</div>
@@ -291,10 +391,24 @@ export function EntryList({
                       >
                         <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
                           <div
-                            className={`grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b px-4 py-2.5 hover:bg-accent ${
-                              selectedEntry?.uuid === entry.uuid || isContextMenuOpen ? "bg-accent" : ""
+                            className={`grid grid-cols-[auto_auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b px-4 py-2.5 hover:bg-accent ${
+                              selectedEntry?.uuid === entry.uuid || isContextMenuOpen || selectedEntries.has(entry.uuid) ? "bg-accent" : ""
                             }`}
                           >
+                            {/* Checkbox */}
+                            <div className="flex items-center w-8 justify-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedEntries.has(entry.uuid)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelectEntry(entry.uuid);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                              />
+                            </div>
+                            
                             {/* Icon */}
                             <div className="flex items-center w-8">
                               <EntryIcon className="h-4 w-4 text-muted-foreground" />
