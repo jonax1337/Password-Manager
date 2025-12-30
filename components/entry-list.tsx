@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Trash2, Copy, CheckCircle2, ExternalLink, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
@@ -288,10 +289,10 @@ export function EntryList({
       <div className="flex h-full flex-col">
         {/* Selection Toolbar */}
         {selectedEntries.size > 0 && (
-          <div className="flex items-center justify-between border-b px-4 py-2 bg-blue-50 dark:bg-blue-950/30">
+          <div className="flex items-center justify-between border-b px-4 py-2 bg-accent/50">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">
-                {selectedEntries.size} selected
+              <span className="text-sm font-semibold">
+                {selectedEntries.size} {selectedEntries.size === 1 ? 'entry' : 'entries'} selected
               </span>
               <Button
                 variant="ghost"
@@ -300,7 +301,7 @@ export function EntryList({
                 className="h-7 text-xs"
               >
                 <X className="h-3 w-3 mr-1" />
-                Clear
+                Deselect
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -311,7 +312,7 @@ export function EntryList({
                 className="h-7 text-xs"
               >
                 <Trash2 className="h-3 w-3 mr-1" />
-                Delete {selectedEntries.size > 1 ? 'All' : ''}
+                Delete
               </Button>
             </div>
           </div>
@@ -357,11 +358,9 @@ export function EntryList({
                   {/* Header */}
                   <div className="sticky top-0 z-10 grid grid-cols-[auto_auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
                     <div className="w-8 flex items-center justify-center">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedEntries.size === entries.length && entries.length > 0}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        onCheckedChange={toggleSelectAll}
                         title="Select all"
                       />
                     </div>
@@ -397,15 +396,10 @@ export function EntryList({
                           >
                             {/* Checkbox */}
                             <div className="flex items-center w-8 justify-center">
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={selectedEntries.has(entry.uuid)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  toggleSelectEntry(entry.uuid);
-                                }}
+                                onCheckedChange={() => toggleSelectEntry(entry.uuid)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
                               />
                             </div>
                             
