@@ -19,14 +19,8 @@ export function PasswordStrengthMeter({
   }
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Password Quality:</span>
-        <span className="font-medium" style={{ color: strength.textColor }}>
-          {strength.bits} bits ({strength.level})
-        </span>
-      </div>
-      <div className="h-3 w-full rounded-sm bg-secondary/20 overflow-hidden border border-border">
+    <div className={cn("relative", className)}>
+      <div className="h-2 w-full rounded-sm bg-secondary/20 overflow-hidden border border-border">
         <div
           className="h-full transition-all duration-300"
           style={{
@@ -34,6 +28,9 @@ export function PasswordStrengthMeter({
             background: strength.gradient,
           }}
         />
+      </div>
+      <div className="absolute -bottom-5 right-0 text-xs font-medium" style={{ color: strength.textColor }}>
+        {strength.bits} bits ({strength.level})
       </div>
     </div>
   );

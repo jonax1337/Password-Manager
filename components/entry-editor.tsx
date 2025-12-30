@@ -6,13 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, Save, Copy, Trash2, Edit } from "lucide-react";
-import { updateEntry, deleteEntry } from "@/lib/tauri";
+import { Eye, EyeOff, Save, Copy, Trash2, Edit, Wand2, Check } from "lucide-react";
+import { updateEntry, deleteEntry, generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { EntryData } from "@/lib/tauri";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { IconPicker } from "@/components/icon-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { emit } from "@tauri-apps/api/event";
 
@@ -26,15 +33,21 @@ interface EntryEditorProps {
 export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: EntryEditorProps) {
   const [formData, setFormData] = useState<EntryData>(entry);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [repeatPassword, setRepeatPassword] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
   const [iconId, setIconId] = useState(0);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [copiedUsername, setCopiedUsername] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     setFormData(entry);
     setHasChanges(false);
     setShowPassword(false);
+    setShowRepeatPassword(false);
+    setRepeatPassword(entry.password); // Auto-fill repeat password
     // Load icon ID from entry.icon_id field
     setIconId(entry.icon_id ?? 0);
   }, [entry.uuid]);
@@ -132,6 +145,16 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       return;
     }
 
+    // Check if passwords match - always enforce this
+    if (formData.password !== repeatPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please ensure both password fields match",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Always ensure we're saving with the correct UUID
     const dataToSave = {
       ...formData,
@@ -161,9 +184,19 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     }
   };
 
-  const handleCopy = async (text: string, label: string) => {
+  const handleCopy = async (text: string, label: string, field: 'username' | 'password') => {
     try {
       await writeText(text);
+      
+      // Set copied state for visual feedback
+      if (field === 'username') {
+        setCopiedUsername(true);
+        setTimeout(() => setCopiedUsername(false), 2000);
+      } else {
+        setCopiedPassword(true);
+        setTimeout(() => setCopiedPassword(false), 2000);
+      }
+      
       toast({
         title: "Copied",
         description: `${label} copied to clipboard`,
@@ -177,6 +210,54 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       toast({
         title: "Error",
         description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGeneratePassword = async (strength: string) => {
+    try {
+      let length = 16;
+      let useUppercase = true;
+      let useLowercase = true;
+      let useDigits = true;
+      let useSymbols = true;
+
+      switch (strength) {
+        case "weak":
+          length = 8;
+          useSymbols = false;
+          break;
+        case "medium":
+          length = 12;
+          break;
+        case "strong":
+          length = 16;
+          break;
+        case "very-strong":
+          length = 20;
+          break;
+        case "maximum":
+          length = 32;
+          break;
+      }
+
+      const password = await generatePassword(length, useUppercase, useLowercase, useDigits, useSymbols);
+      
+      // Auto-fill both password fields
+      setFormData((prev) => ({ ...prev, password }));
+      setRepeatPassword(password);
+      setHasChanges(true);
+
+      toast({
+        title: "Password generated",
+        description: `Generated ${strength} password (${length} characters)`,
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to generate password",
         variant: "destructive",
       });
     }
@@ -220,49 +301,100 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => handleCopy(formData.username, "Username")}
+                onClick={() => handleCopy(formData.username, "Username", "username")}
                 disabled={!formData.username}
+                title="Copy username"
               >
-                <Copy className="h-4 w-4" />
+                {copiedUsername ? (
+                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => handleChange("password", e.target.value)}
-                  className="pr-10"
-                />
+          <div>
+            <div className="space-y-1">
+              <Label htmlFor="password">Password</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
                 <Button
-                  type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => handleCopy(formData.password, "Password", "password")}
+                  disabled={!formData.password}
+                  title="Copy password"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                  {copiedPassword ? (
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Copy className="h-4 w-4" />
                   )}
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleCopy(formData.password, "Password")}
-                disabled={!formData.password}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
             </div>
-            <PasswordStrengthMeter password={formData.password} />
+            
+            {/* Repeat Password Field */}
+            <div className="space-y-1 mt-3">
+              <Label htmlFor="repeat-password">Repeat Password</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="repeat-password"
+                  type="password"
+                  value={repeatPassword}
+                  onChange={(e) => setRepeatPassword(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    toast({
+                      title: "Paste disabled",
+                      description: "Please type the password to confirm",
+                      variant: "destructive",
+                    });
+                  }}
+                  className={!repeatPassword || formData.password !== repeatPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  placeholder="Repeat password to confirm"
+                  disabled={showPassword}
+                />
+                <Select value="" onValueChange={handleGeneratePassword}>
+                  <SelectTrigger className="w-10 h-10 flex items-center justify-center [&>svg[aria-hidden]]:hidden hover:bg-accent hover:text-accent-foreground transition-colors" title="Generate password">
+                    <Wand2 className="h-4 w-4" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weak" className="pl-2">Weak (8)</SelectItem>
+                    <SelectItem value="medium" className="pl-2">Medium (12)</SelectItem>
+                    <SelectItem value="strong" className="pl-2">Strong (16)</SelectItem>
+                    <SelectItem value="very-strong" className="pl-2">Very Strong (20)</SelectItem>
+                    <SelectItem value="maximum" className="pl-2">Maximum (32)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="mt-4 mb-6">
+              <PasswordStrengthMeter password={formData.password} />
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -284,8 +416,9 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => handleCopy(formData.url, "URL")}
+                onClick={() => handleCopy(formData.url, "URL", "password")}
                 disabled={!formData.url}
+                title="Copy URL"
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -315,8 +448,8 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </div>
       </ScrollArea>
 
-      <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background px-4 py-3">
-        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError}>
+      <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background px-4 py-3 border-t">
+        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError || !repeatPassword || formData.password !== repeatPassword}>
           <Save className="mr-2 h-4 w-4" />
           Save
         </Button>
