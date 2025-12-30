@@ -35,11 +35,22 @@ export function RecoveryKeyDialog({
     // Create a printable view
     const printWindow = window.open("", "_blank");
     if (printWindow) {
+      // Escape HTML to prevent XSS
+      const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
+      const safeDatabaseName = escapeHtml(databaseName);
+      const safeRecoveryKey = escapeHtml(recoveryKey);
+      const safeDate = escapeHtml(new Date().toLocaleString());
+      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Recovery Key - ${databaseName}</title>
+          <title>Recovery Key - ${safeDatabaseName}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -83,8 +94,8 @@ export function RecoveryKeyDialog({
         </head>
         <body>
           <h1>Database Recovery Key</h1>
-          <p><strong>Database:</strong> ${databaseName}</p>
-          <p><strong>Created:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Database:</strong> ${safeDatabaseName}</p>
+          <p><strong>Created:</strong> ${safeDate}</p>
           
           <div class="warning">
             <strong>⚠️ WICHTIG / IMPORTANT:</strong><br/>
@@ -93,7 +104,7 @@ export function RecoveryKeyDialog({
           </div>
           
           <div class="key-container">
-            ${recoveryKey}
+            ${safeRecoveryKey}
           </div>
           
           <div class="instructions">
