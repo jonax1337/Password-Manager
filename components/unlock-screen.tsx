@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Plus } from "lucide-react";
 import { openDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { CreateDatabaseDialog } from "@/components/create-database-dialog";
 import { saveLastDatabasePath } from "@/lib/storage";
+import Image from "next/image";
 
 interface UnlockScreenProps {
   onUnlock: () => void;
@@ -95,10 +96,14 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
       
       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
         <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
-          <div className="flex flex-col items-center space-y-2">
-            <div className="rounded-full bg-primary p-3">
-              <Lock className="h-8 w-8 text-primary-foreground" />
-            </div>
+          <div className="flex flex-col items-center space-y-4">
+            <Image 
+              src="/app-icon.png" 
+              alt="Simple Password Manager"
+              width={120}
+              height={120}
+              className="drop-shadow-lg"
+            />
             <h1 className="text-2xl font-bold">Simple Password Manager</h1>
             <p className="text-sm text-muted-foreground">
               Open and unlock your password database
