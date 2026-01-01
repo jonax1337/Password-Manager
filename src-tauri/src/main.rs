@@ -28,6 +28,7 @@ fn main() {
             commands::close_database,
             commands::get_groups,
             commands::get_entries,
+            commands::get_favorite_entries,
             commands::get_entry,
             commands::create_entry,
             commands::update_entry,

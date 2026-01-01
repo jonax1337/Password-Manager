@@ -10,6 +10,7 @@ export interface EntryData {
   tags: string;
   group_uuid: string;
   icon_id?: number;
+  is_favorite: boolean;
 }
 
 export interface GroupData {
@@ -42,6 +43,10 @@ export async function getGroups(): Promise<GroupData> {
 
 export async function getEntries(groupUuid: string): Promise<EntryData[]> {
   return await invoke<EntryData[]>("get_entries", { groupUuid });
+}
+
+export async function getFavoriteEntries(): Promise<EntryData[]> {
+  return await invoke<EntryData[]>("get_favorite_entries");
 }
 
 export async function getEntry(entryUuid: string): Promise<EntryData> {

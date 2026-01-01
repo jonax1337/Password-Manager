@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ChevronRight, ChevronDown, Plus, Trash2, Edit2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, Trash2, Edit2, Star } from "lucide-react";
 import { createGroup, deleteGroup, renameGroup, moveGroup, reorderGroup } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { GroupData } from "@/lib/tauri";
@@ -458,6 +458,17 @@ export function GroupTree({
             <ContextMenuTrigger asChild>
               <ScrollArea className="flex-1">
                 <div className="p-1 min-h-full">
+                  {/* Virtual Favorites Folder */}
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer rounded transition-colors ${
+                      selectedUuid === "_favorites" ? "bg-accent" : "hover:bg-accent/50"
+                    }`}
+                    onClick={() => onSelectGroup("_favorites")}
+                  >
+                    <Star className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="truncate text-sm font-medium">Favorites</span>
+                  </div>
+                  
                   {renderGroup(group, 0)}
                 </div>
               </ScrollArea>

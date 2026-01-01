@@ -38,6 +38,7 @@ pub struct EntryData {
     pub tags: String,
     pub group_uuid: String,
     pub icon_id: Option<usize>,
+    pub is_favorite: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -176,6 +177,7 @@ impl Database {
 
     fn convert_entry(&self, entry: &Entry, group_uuid: &str) -> EntryData {
         let uuid = entry.uuid.to_string();
+        let is_favorite = entry.get("_Favorite").unwrap_or("") == "true";
         EntryData {
             uuid,
             title: entry.get_title().unwrap_or("").to_string(),
@@ -186,6 +188,7 @@ impl Database {
             tags: entry.get("Tags").unwrap_or("").to_string(),
             group_uuid: group_uuid.to_string(),
             icon_id: entry.icon_id,
+            is_favorite,
         }
     }
 
@@ -218,6 +221,9 @@ impl Database {
         if !entry_data.tags.is_empty() {
             entry.fields.insert("Tags".to_string(), Value::Unprotected(entry_data.tags));
         }
+        if entry_data.is_favorite {
+            entry.fields.insert("_Favorite".to_string(), Value::Unprotected("true".to_string()));
+        }
         
         // Set icon ID if provided
         if let Some(icon_id) = entry_data.icon_id {
@@ -237,6 +243,13 @@ impl Database {
         entry.fields.insert("URL".to_string(), Value::Unprotected(entry_data.url));
         entry.fields.insert("Notes".to_string(), Value::Unprotected(entry_data.notes));
         entry.fields.insert("Tags".to_string(), Value::Unprotected(entry_data.tags));
+        
+        // Update favorite status
+        if entry_data.is_favorite {
+            entry.fields.insert("_Favorite".to_string(), Value::Unprotected("true".to_string()));
+        } else {
+            entry.fields.remove("_Favorite");
+        }
         
         // Update icon ID
         entry.icon_id = entry_data.icon_id;

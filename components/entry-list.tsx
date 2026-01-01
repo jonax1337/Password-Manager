@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key, ChevronRight } from "lucide-react";
+import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key, ChevronRight, Star } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenuSeparator } from "@/components/ui/context-menu";
-import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
+import { getEntries, createEntry, deleteEntry, updateEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent, IconPicker } from "@/components/icon-picker";
@@ -110,6 +110,7 @@ export function EntryList({
         tags: "",
         group_uuid: groupUuid,
         icon_id: newEntryIconId,
+        is_favorite: false,
       };
 
       await createEntry(newEntry);
@@ -319,7 +320,11 @@ export function EntryList({
         {selectedEntries.size === 0 && (
           <div className="flex items-center justify-between border-b px-4 py-2">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              {!isSearching && selectedGroupName && (
+              {isSearching && selectedGroupName === "Favorites" ? (
+                <h2 className="text-sm font-semibold">Favorites</h2>
+              ) : isSearching ? (
+                <h2 className="text-sm font-semibold">Search Results</h2>
+              ) : selectedGroupName && (
                 <div className="flex items-center gap-1.5 text-sm font-semibold truncate">
                   {selectedGroupName.split('/').map((segment, index, array) => (
                     <div key={index} className="flex items-center gap-1.5">
@@ -331,11 +336,15 @@ export function EntryList({
                   ))}
                 </div>
               )}
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 ({entries.length})
               </span>
             </div>
-            {isSearching ? (
+            {isSearching && selectedGroupName === "Favorites" ? (
+              <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </div>
+            ) : isSearching ? (
               <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">
                 <Search className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -464,8 +473,41 @@ export function EntryList({
                               </p>
                             </div>
                             
-                            {/* Spacer for alignment */}
-                            <div className="w-8"></div>
+                            {/* Favorite Star */}
+                            <div className="flex items-center justify-center w-8">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await updateEntry({
+                                      ...entry,
+                                      is_favorite: !entry.is_favorite,
+                                    });
+                                    onRefresh();
+                                    toast({
+                                      title: entry.is_favorite ? "Removed from favorites" : "Added to favorites",
+                                      variant: "success",
+                                    });
+                                  } catch (error: any) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to update favorite status",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                className="p-1 hover:bg-accent rounded transition-colors"
+                                title={entry.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                              >
+                                <Star 
+                                  className={`h-4 w-4 transition-colors ${
+                                    entry.is_favorite 
+                                      ? "fill-yellow-400 text-yellow-400" 
+                                      : "text-muted-foreground hover:text-yellow-400"
+                                  }`}
+                                />
+                              </button>
+                            </div>
                           </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent>

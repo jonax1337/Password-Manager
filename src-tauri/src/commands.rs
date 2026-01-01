@@ -82,13 +82,27 @@ pub fn get_groups(state: State<AppState>) -> Result<GroupData, String> {
 #[tauri::command]
 pub fn get_entries(state: State<AppState>, group_uuid: String) -> Result<Vec<EntryData>, String> {
     let database_lock = state.database.lock().unwrap();
+    let db = database_lock
+        .as_ref()
+        .ok_or("Database not loaded".to_string())?;
 
-    if let Some(db) = database_lock.as_ref() {
-        db.get_entries_in_group(&group_uuid)
-            .map_err(|e| e.to_string())
-    } else {
-        Err("No database loaded".to_string())
-    }
+    db.get_entries_in_group(&group_uuid).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_favorite_entries(state: State<AppState>) -> Result<Vec<EntryData>, String> {
+    let database_lock = state.database.lock().unwrap();
+    let db = database_lock
+        .as_ref()
+        .ok_or("Database not loaded".to_string())?;
+
+    let all_entries = db.get_all_entries();
+    let favorites: Vec<EntryData> = all_entries
+        .into_iter()
+        .filter(|entry| entry.is_favorite)
+        .collect();
+
+    Ok(favorites)
 }
 
 #[tauri::command]

@@ -22,7 +22,7 @@ import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
 import { openEntryWindow, openSettingsWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
-import { closeDatabase, getGroups, searchEntries } from "@/lib/tauri";
+import { closeDatabase, getGroups, searchEntries, getFavoriteEntries } from "@/lib/tauri";
 import type { GroupData, EntryData } from "@/lib/tauri";
 import { clearLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -39,7 +39,9 @@ export function MainApp({ onClose }: MainAppProps) {
   const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<EntryData[]>([]);
+  const [favoriteEntries, setFavoriteEntries] = useState<EntryData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isFavoritesView, setIsFavoritesView] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [dbPath, setDbPath] = useState<string>("");
@@ -316,6 +318,36 @@ export function MainApp({ onClose }: MainAppProps) {
     setRefreshTrigger((prev) => prev + 1);
     setIsDirty(true); // Mark as dirty on any change
     // Don't clear selected entry - keep it open after refresh
+    
+    // Reload favorites if favorites view is active
+    if (isFavoritesView) {
+      getFavoriteEntries().then(setFavoriteEntries);
+    }
+  };
+
+  const handleGroupSelect = async (uuid: string) => {
+    setSelectedGroupUuid(uuid);
+    setIsSearching(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    
+    // Handle favorites view
+    if (uuid === "_favorites") {
+      setIsFavoritesView(true);
+      try {
+        const favorites = await getFavoriteEntries();
+        setFavoriteEntries(favorites);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error || "Failed to load favorites",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setIsFavoritesView(false);
+      setFavoriteEntries([]);
+    }
   };
 
   const getGroupPath = (root: GroupData, targetUuid: string): string => {
@@ -384,12 +416,12 @@ export function MainApp({ onClose }: MainAppProps) {
             <GroupTree
               group={rootGroup}
               selectedUuid={selectedGroupUuid}
-              onSelectGroup={setSelectedGroupUuid}
+              onSelectGroup={handleGroupSelect}
               onRefresh={handleRefresh}
               onGroupDeleted={(deletedUuid) => {
                 // If the deleted group was selected, deselect it
                 if (selectedGroupUuid === deletedUuid) {
-                  setSelectedGroupUuid(rootGroup.uuid);
+                  handleGroupSelect(rootGroup.uuid);
                 }
               }}
               dbPath={dbPath}
@@ -400,14 +432,16 @@ export function MainApp({ onClose }: MainAppProps) {
 
         <div className="flex-1">
           <EntryList
-            groupUuid={isSearching ? "" : selectedGroupUuid}
-            searchResults={isSearching ? searchResults : []}
+            groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
+            searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
             selectedEntry={null}
             onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
             onRefresh={handleRefresh}
-            isSearching={isSearching}
+            isSearching={isSearching || isFavoritesView}
             selectedGroupName={
-              rootGroup && selectedGroupUuid 
+              isFavoritesView 
+                ? "Favorites"
+                : rootGroup && selectedGroupUuid 
                 ? getGroupPath(rootGroup, selectedGroupUuid)
                 : undefined
             }
