@@ -82,7 +82,9 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "icons/file-icon.ico"
+      "icons/file-icon.ico",
+      "icons/file-icon.icns",
+      "icons/file-icon.png"
     ],
     "fileAssociations": [
       {
@@ -100,6 +102,18 @@
       "wix": {
         "fragmentPaths": ["wix/file-icon-fragment.wxs"],
         "componentRefs": ["FileIconRegistry"]
+      }
+    },
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/simple-password-manager.desktop",
+        "files": {
+          "linux/kdbx-mime.xml": "/usr/share/mime/packages/kdbx-mime.xml",
+          "icons/file-icon.png": "/usr/share/icons/hicolor/128x128/mimetypes/application-x-keepass.png"
+        }
+      },
+      "rpm": {
+        "desktopTemplate": "linux/simple-password-manager.desktop"
       }
     }
   },
