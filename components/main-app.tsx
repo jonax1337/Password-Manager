@@ -202,7 +202,7 @@ export function MainApp({ onClose }: MainAppProps) {
       
       // Load persisted state on first load
       if (!selectedGroupUuid && dbPath) {
-        const state = loadGroupTreeState(dbPath, groups.uuid);
+        const state = loadGroupTreeState(dbPath, groups.uuid, groups);
         setSelectedGroupUuid(state.selectedGroup || groups.uuid);
         setInitialExpandedGroups(new Set(state.expandedGroups));
       } else if (!selectedGroupUuid) {

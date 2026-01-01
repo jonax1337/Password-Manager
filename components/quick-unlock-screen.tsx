@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { KeyRound } from "lucide-react";
+import Image from "next/image";
 import { openDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -57,9 +57,13 @@ export function QuickUnlockScreen({
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <div className="w-full max-w-sm space-y-6 rounded-lg border bg-card p-6 shadow-lg">
         <div className="flex flex-col items-center space-y-2">
-          <div className="rounded-full bg-primary p-3">
-            <KeyRound className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <Image
+            src="/quick-unlock.png"
+            alt="Quick Unlock"
+            width={80}
+            height={80}
+            className="mb-2"
+          />
           <h2 className="text-xl font-semibold">Quick Unlock</h2>
           <p className="text-center text-xs text-muted-foreground break-all px-2">
             {lastDatabasePath}
