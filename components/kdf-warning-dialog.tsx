@@ -17,22 +17,29 @@ interface KdfWarningDialogProps {
   onSkip: () => void;
   onUpgrade: () => void;
   kdfType: string;
+  databasePath: string;
 }
 
-export function KdfWarningDialog({ open, onSkip, onUpgrade, kdfType }: KdfWarningDialogProps) {
+export function KdfWarningDialog({ open, onSkip, onUpgrade, kdfType, databasePath }: KdfWarningDialogProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  const handleUpgrade = () => {
+  const dismissForDatabase = () => {
     if (dontShowAgain) {
-      localStorage.setItem("kdf_warning_dismissed", "true");
+      const dismissed = JSON.parse(localStorage.getItem("kdf_warning_dismissed_dbs") || "[]");
+      if (!dismissed.includes(databasePath)) {
+        dismissed.push(databasePath);
+        localStorage.setItem("kdf_warning_dismissed_dbs", JSON.stringify(dismissed));
+      }
     }
+  };
+
+  const handleUpgrade = () => {
+    dismissForDatabase();
     onUpgrade();
   };
 
   const handleSkip = () => {
-    if (dontShowAgain) {
-      localStorage.setItem("kdf_warning_dismissed", "true");
-    }
+    dismissForDatabase();
     onSkip();
   };
 
@@ -64,7 +71,7 @@ export function KdfWarningDialog({ open, onSkip, onUpgrade, kdfType }: KdfWarnin
             htmlFor="dont-show"
             className="text-sm text-muted-foreground cursor-pointer select-none"
           >
-            Do not show this dialog again; always &apos;No&apos;.
+            Do not show this dialog again for this database; always &apos;No&apos;.
           </label>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">

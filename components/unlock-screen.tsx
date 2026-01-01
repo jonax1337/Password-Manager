@@ -74,11 +74,12 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
       const [rootGroup, dbPath] = await openDatabase(filePath, password);
       saveLastDatabasePath(filePath);
       
-      // Check if KDF warning was dismissed
-      const dismissed = localStorage.getItem("kdf_warning_dismissed") === "true";
+      // Check if KDF warning was dismissed for this database
+      const dismissedDbs = JSON.parse(localStorage.getItem("kdf_warning_dismissed_dbs") || "[]");
+      const isDismissedForThisDb = dismissedDbs.includes(filePath);
       
       // Check KDF parameters
-      if (!dismissed) {
+      if (!isDismissedForThisDb) {
         try {
           const kdfInfo = await invoke<{
             kdf_type: string;
@@ -153,6 +154,7 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
         onSkip={handleKdfSkip}
         onUpgrade={handleKdfUpgrade}
         kdfType={kdfType}
+        databasePath={filePath}
       />
       
       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -188,8 +190,9 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
                   size="icon"
                   onClick={handleSelectFile}
                   title="Open existing database"
+                  className="h-10 w-10"
                 >
-                  <FolderOpen className="h-4 w-4" />
+                  <FolderOpen className="h-5 w-5" />
                 </Button>
               </div>
             </div>

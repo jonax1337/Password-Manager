@@ -155,8 +155,9 @@ export function CreateDatabaseDialog({
                 variant="outline"
                 size="icon"
                 onClick={handleSelectFolder}
+                className="h-10 w-10"
               >
-                <FolderOpen className="h-4 w-4" />
+                <FolderOpen className="h-5 w-5" />
               </Button>
             </div>
           </div>
