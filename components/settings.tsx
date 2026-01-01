@@ -36,6 +36,8 @@ export function Settings() {
   const handleAutoLockChange = (value: string) => {
     setAutoLockMinutes(value);
     localStorage.setItem("autoLockMinutes", value);
+    // Dispatch custom event to notify main app of setting change
+    window.dispatchEvent(new Event('autoLockChanged'));
   };
 
   if (!mounted) {

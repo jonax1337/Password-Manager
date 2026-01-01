@@ -5,7 +5,7 @@ import { UnlockScreen } from "@/components/unlock-screen";
 import { QuickUnlockScreen } from "@/components/quick-unlock-screen";
 import { MainApp } from "@/components/main-app";
 import { Toaster } from "@/components/ui/toaster";
-import { getLastDatabasePath } from "@/lib/storage";
+import { getLastDatabasePath, clearLastDatabasePath } from "@/lib/storage";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -37,6 +37,17 @@ export default function Home() {
     
     initialize();
   }, []);
+
+  // Reload lastDatabasePath when returning from MainApp (e.g., after auto-lock)
+  useEffect(() => {
+    if (!isUnlocked && !isChecking && !filePathFromAssociation) {
+      const lastPath = getLastDatabasePath();
+      if (lastPath && !lastDatabasePath) {
+        setLastDatabasePath(lastPath);
+        setShowQuickUnlock(true);
+      }
+    }
+  }, [isUnlocked, isChecking, filePathFromAssociation, lastDatabasePath]);
 
   // Reset window title when on unlock screen
   useEffect(() => {
@@ -76,7 +87,17 @@ export default function Home() {
           <UnlockScreen onUnlock={() => setIsUnlocked(true)} />
         )
       ) : (
-        <MainApp onClose={() => setIsUnlocked(false)} />
+        <MainApp onClose={(isManualLogout = false) => {
+          setIsUnlocked(false);
+          
+          if (isManualLogout) {
+            // Manual logout: clear everything
+            setShowQuickUnlock(false);
+            clearLastDatabasePath();
+            setLastDatabasePath(null);
+          }
+          // Window close: keep lastDatabasePath for Quick Unlock on next start
+        }} />
       )}
       <Toaster />
     </main>
