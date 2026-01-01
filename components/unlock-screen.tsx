@@ -9,7 +9,9 @@ import { openDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { CreateDatabaseDialog } from "@/components/create-database-dialog";
+import { KdfWarningDialog } from "@/components/kdf-warning-dialog";
 import { saveLastDatabasePath } from "@/lib/storage";
+import { invoke } from "@tauri-apps/api/core";
 import Image from "next/image";
 
 interface UnlockScreenProps {
@@ -22,6 +24,8 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
   const [filePath, setFilePath] = useState(initialFilePath || "");
   const [loading, setLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showKdfWarning, setShowKdfWarning] = useState(false);
+  const [kdfType, setKdfType] = useState("");
   const { toast } = useToast();
 
   // Update file path when initialFilePath changes
@@ -69,6 +73,32 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
     try {
       const [rootGroup, dbPath] = await openDatabase(filePath, password);
       saveLastDatabasePath(filePath);
+      
+      // Check if KDF warning was dismissed
+      const dismissed = localStorage.getItem("kdf_warning_dismissed") === "true";
+      
+      // Check KDF parameters
+      if (!dismissed) {
+        try {
+          const kdfInfo = await invoke<{
+            kdf_type: string;
+            is_weak: boolean;
+            iterations?: number;
+            memory?: number;
+            parallelism?: number;
+          }>("get_kdf_info");
+          
+          if (kdfInfo.is_weak) {
+            setKdfType(kdfInfo.kdf_type);
+            setShowKdfWarning(true);
+            setLoading(false);
+            return; // Don't unlock yet, wait for user decision
+          }
+        } catch (error) {
+          console.error("Failed to check KDF info:", error);
+        }
+      }
+      
       toast({
         title: "Success",
         description: "Database unlocked successfully",
@@ -86,12 +116,43 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
     }
   };
 
+  const handleKdfUpgrade = async () => {
+    try {
+      await invoke("upgrade_kdf_parameters");
+      toast({
+        title: "Success",
+        description: "Key transformation settings upgraded successfully",
+        variant: "success",
+      });
+      setShowKdfWarning(false);
+      onUnlock();
+    } catch (error: any) {
+      toast({
+        title: "Upgrade Failed",
+        description: error?.toString() || "Failed to upgrade KDF parameters",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleKdfSkip = () => {
+    setShowKdfWarning(false);
+    onUnlock();
+  };
+
   return (
     <>
       <CreateDatabaseDialog
         isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onSuccess={onUnlock}
+      />
+      
+      <KdfWarningDialog
+        open={showKdfWarning}
+        onSkip={handleKdfSkip}
+        onUpgrade={handleKdfUpgrade}
+        kdfType={kdfType}
       />
       
       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">

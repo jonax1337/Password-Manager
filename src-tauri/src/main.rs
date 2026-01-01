@@ -28,6 +28,8 @@ fn main() {
             commands::open_database,
             commands::save_database,
             commands::close_database,
+            commands::get_kdf_info,
+            commands::upgrade_kdf_parameters,
             commands::get_groups,
             commands::get_entries,
             commands::get_favorite_entries,

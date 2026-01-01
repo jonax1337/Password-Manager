@@ -3625,6 +3625,7 @@ version = "1.0.0"
 dependencies = [
  "keepass",
  "rand 0.8.5",
+ "rust-argon2",
  "secrecy",
  "serde",
  "serde_json",

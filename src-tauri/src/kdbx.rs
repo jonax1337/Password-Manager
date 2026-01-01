@@ -1,4 +1,6 @@
+use argon2::Version as Argon2Version;
 use keepass::{
+    config::{DatabaseConfig, KdfConfig},
     db::{Entry, Group, Node, Value},
     Database as KeepassDatabase, DatabaseKey,
 };
@@ -50,6 +52,15 @@ pub struct GroupData {
     pub icon_id: Option<usize>,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct KdfInfo {
+    pub kdf_type: String,
+    pub is_weak: bool,
+    pub iterations: Option<u64>,
+    pub memory: Option<u64>,
+    pub parallelism: Option<u32>,
+}
+
 pub struct Database {
     pub db: KeepassDatabase,
     pub path: PathBuf,
@@ -67,8 +78,19 @@ impl Database {
             .unwrap_or("Root")
             .to_string();
         
-        // Create database with default configuration (KDBX4 format)
-        let mut db = KeepassDatabase::new(Default::default());
+        // Create database with strong KDF configuration (KDBX4 format with Argon2id)
+        // Note: memory is in BYTES (divided by 1024 internally to get KiB for argon2)
+        let config = DatabaseConfig {
+            kdf_config: KdfConfig::Argon2id {
+                iterations: 2,                    // 2 iterations (KeePass recommendation)
+                memory: 64 * 1024 * 1024,         // 64 MB in bytes (KeePass default)
+                parallelism: 2,                   // 2 threads
+                version: Argon2Version::Version13,
+            },
+            ..Default::default()
+        };
+        
+        let mut db = KeepassDatabase::new(config);
         db.root.name = db_name;
         
         let mut new_db = Self {
@@ -116,6 +138,51 @@ impl Database {
             .save(&mut std::io::BufWriter::new(file), key)
             .map_err(|e| DatabaseError::SaveError(e.to_string()))?;
 
+        Ok(())
+    }
+
+    pub fn get_kdf_info(&self) -> KdfInfo {
+        match &self.db.config.kdf_config {
+            KdfConfig::Aes { rounds } => KdfInfo {
+                kdf_type: "AES".to_string(),
+                is_weak: *rounds < 60000,
+                iterations: Some(*rounds),
+                memory: None,
+                parallelism: None,
+            },
+            KdfConfig::Argon2 { iterations, memory, parallelism, .. } => {
+                let memory_mb = memory / (1024 * 1024);
+                let is_weak = *iterations < 2 || memory_mb < 64 || *parallelism < 2;
+                KdfInfo {
+                    kdf_type: "Argon2d".to_string(),
+                    is_weak,
+                    iterations: Some(*iterations),
+                    memory: Some(*memory),
+                    parallelism: Some(*parallelism),
+                }
+            },
+            KdfConfig::Argon2id { iterations, memory, parallelism, .. } => {
+                let memory_mb = memory / (1024 * 1024);
+                let is_weak = *iterations < 2 || memory_mb < 64 || *parallelism < 2;
+                KdfInfo {
+                    kdf_type: "Argon2id".to_string(),
+                    is_weak,
+                    iterations: Some(*iterations),
+                    memory: Some(*memory),
+                    parallelism: Some(*parallelism),
+                }
+            },
+        }
+    }
+
+    pub fn upgrade_kdf_parameters(&mut self) -> Result<(), DatabaseError> {
+        self.db.config.kdf_config = KdfConfig::Argon2id {
+            iterations: 2,
+            memory: 64 * 1024 * 1024,
+            parallelism: 2,
+            version: Argon2Version::Version13,
+        };
+        self.save()?;
         Ok(())
     }
 

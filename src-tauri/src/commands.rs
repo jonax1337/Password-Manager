@@ -1,4 +1,4 @@
-use crate::kdbx::{Database, EntryData, GroupData};
+use crate::kdbx::{Database, EntryData, GroupData, KdfInfo};
 use crate::state::AppState;
 use rand::Rng;
 use std::path::PathBuf;
@@ -66,6 +66,27 @@ pub fn close_database(state: State<AppState>) -> Result<(), String> {
     let mut database_lock = state.database.lock().unwrap();
     *database_lock = None;
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_kdf_info(state: State<AppState>) -> Result<KdfInfo, String> {
+    let database_lock = state.database.lock().unwrap();
+    if let Some(db) = database_lock.as_ref() {
+        Ok(db.get_kdf_info())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn upgrade_kdf_parameters(state: State<AppState>) -> Result<(), String> {
+    let mut database_lock = state.database.lock().unwrap();
+    if let Some(db) = database_lock.as_mut() {
+        db.upgrade_kdf_parameters().map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
 }
 
 #[tauri::command]

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings as SettingsIcon, Moon, Sun, Monitor } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
@@ -65,8 +66,8 @@ export function Settings() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="mx-auto max-w-2xl space-y-8">
+      <ScrollArea className="flex-1">
+        <div className="space-y-8 p-6">
           {/* Appearance Section */}
           <div className="space-y-4">
             <div>
@@ -163,7 +164,7 @@ export function Settings() {
             </div>
           </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
