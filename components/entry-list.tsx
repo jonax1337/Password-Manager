@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key } from "lucide-react";
+import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenuSeparator } from "@/components/ui/context-menu";
 import { getEntries, createEntry, deleteEntry } from "@/lib/tauri";
@@ -318,17 +318,22 @@ export function EntryList({
         {/* Normal Header */}
         {selectedEntries.size === 0 && (
           <div className="flex items-center justify-between border-b px-4 py-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <h2 className="text-sm font-semibold">
-                {isSearching
-                  ? `Search Results (${entries.length})`
-                  : `Entries (${entries.length})`}
-              </h2>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               {!isSearching && selectedGroupName && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {selectedGroupName}
-                </span>
+                <div className="flex items-center gap-1.5 text-sm font-semibold truncate">
+                  {selectedGroupName.split('/').map((segment, index, array) => (
+                    <div key={index} className="flex items-center gap-1.5">
+                      <span className="truncate">{segment}</span>
+                      {index < array.length - 1 && (
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                ({entries.length})
+              </span>
             </div>
             {isSearching ? (
               <div className="h-7 w-7 flex items-center justify-center flex-shrink-0">

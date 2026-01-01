@@ -100,8 +100,8 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
             <Image 
               src="/app-icon.png" 
               alt="Simple Password Manager"
-              width={120}
-              height={120}
+              width={100}
+              height={100}
               className="drop-shadow-lg"
             />
             <h1 className="text-2xl font-bold">Simple Password Manager</h1>
