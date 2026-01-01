@@ -81,6 +81,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "icons/file-icon.ico"
+    ],
     "fileAssociations": [
       {
         "ext": ["kdbx"],
@@ -89,7 +92,16 @@
         "role": "Editor",
         "mimeType": "application/x-keepass"
       }
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "nsis/installer-hooks.nsh"
+      },
+      "wix": {
+        "fragmentPaths": ["wix/file-icon-fragment.wxs"],
+        "componentRefs": ["FileIconRegistry"]
+      }
+    }
   },
   "plugins": {}
 }
