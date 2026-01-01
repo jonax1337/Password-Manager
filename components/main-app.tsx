@@ -200,20 +200,23 @@ export function MainApp({ onClose }: MainAppProps) {
 
   // Handle window close event
   useEffect(() => {
-    const appWindow = getCurrentWindow();
     let unlisten: (() => void) | undefined;
 
     const setupCloseHandler = async () => {
+      const appWindow = getCurrentWindow();
       unlisten = await appWindow.onCloseRequested(async (event) => {
-        // Use ref to get current value, avoiding stale closure
+        const closeToTray = localStorage.getItem("closeToTray") === "true";
+        
         if (isDirtyRef.current) {
           event.preventDefault();
           setCloseAction('window');
           setShowUnsavedDialog(true);
-        } else {
-          // Clean up and allow close
-          await performClose();
+        } else if (closeToTray) {
+          // Close to tray enabled and no unsaved changes
+          event.preventDefault();
+          await appWindow.hide();
         }
+        // Otherwise let window close normally
       });
     };
 
@@ -323,7 +326,12 @@ export function MainApp({ onClose }: MainAppProps) {
     
     if (closeAction === 'window') {
       const appWindow = getCurrentWindow();
-      await appWindow.close();
+      const closeToTray = localStorage.getItem("closeToTray") === "true";
+      if (closeToTray) {
+        await appWindow.hide();
+      } else {
+        await appWindow.close();
+      }
     } else if (closeAction === 'logout') {
       await performClose(true); // Manual logout
     }
@@ -337,7 +345,12 @@ export function MainApp({ onClose }: MainAppProps) {
     
     if (closeAction === 'window') {
       const appWindow = getCurrentWindow();
-      await appWindow.close();
+      const closeToTray = localStorage.getItem("closeToTray") === "true";
+      if (closeToTray) {
+        await appWindow.hide();
+      } else {
+        await appWindow.close();
+      }
     } else if (closeAction === 'logout') {
       await performClose(true); // Manual logout
     }

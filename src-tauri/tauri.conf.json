@@ -35,6 +35,8 @@
             "core:window:allow-destroy",
             "core:window:allow-create",
             "core:window:allow-set-focus",
+            "core:window:allow-hide",
+            "core:window:allow-show",
             "core:webview:allow-create-webview-window",
             "core:event:allow-listen",
             "core:event:allow-emit",

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Settings as SettingsIcon, Moon, Sun, Monitor } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [autoLockMinutes, setAutoLockMinutes] = useState<string>("0");
+  const [closeToTray, setCloseToTray] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -26,6 +28,9 @@ export function Settings() {
     if (saved) {
       setAutoLockMinutes(saved);
     }
+    // Load close to tray setting
+    const closeToTraySaved = localStorage.getItem("closeToTray");
+    setCloseToTray(closeToTraySaved === "true");
   }, []);
 
   const handleClose = async () => {
@@ -38,6 +43,11 @@ export function Settings() {
     localStorage.setItem("autoLockMinutes", value);
     // Dispatch custom event to notify main app of setting change
     window.dispatchEvent(new Event('autoLockChanged'));
+  };
+
+  const handleCloseToTrayChange = (checked: boolean) => {
+    setCloseToTray(checked);
+    localStorage.setItem("closeToTray", checked.toString());
   };
 
   if (!mounted) {
@@ -126,6 +136,30 @@ export function Settings() {
               <p className="text-xs text-muted-foreground">
                 Automatically lock the database after a period of inactivity
               </p>
+            </div>
+          </div>
+
+          {/* Application Section */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-base font-semibold">Application</h2>
+              <p className="text-sm text-muted-foreground">
+                Configure application behavior
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="close-to-tray">Close to System Tray</Label>
+                <p className="text-xs text-muted-foreground">
+                  Minimize to system tray instead of closing when clicking X
+                </p>
+              </div>
+              <Switch
+                id="close-to-tray"
+                checked={closeToTray}
+                onCheckedChange={handleCloseToTrayChange}
+              />
             </div>
           </div>
         </div>
