@@ -145,8 +145,8 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       return;
     }
 
-    // Check if passwords match - always enforce this
-    if (formData.password !== repeatPassword) {
+    // Check if passwords match - only when both are filled
+    if (formData.password && repeatPassword && formData.password !== repeatPassword) {
       toast({
         title: "Passwords don't match",
         description: "Please ensure both password fields match",
@@ -373,7 +373,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                       variant: "destructive",
                     });
                   }}
-                  className={!repeatPassword || formData.password !== repeatPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={repeatPassword && formData.password && formData.password !== repeatPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
                   placeholder="Repeat password to confirm"
                   disabled={showPassword}
                 />
@@ -449,7 +449,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       </ScrollArea>
 
       <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background px-4 py-3 border-t">
-        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError || !repeatPassword || formData.password !== repeatPassword}>
+        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError || !!(formData.password && repeatPassword && formData.password !== repeatPassword)}>
           <Save className="mr-2 h-4 w-4" />
           Save
         </Button>
