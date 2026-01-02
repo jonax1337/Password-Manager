@@ -17,6 +17,7 @@ pub enum DatabaseError {
     OpenError(String),
     #[error("Failed to save database: {0}")]
     SaveError(String),
+    #[allow(dead_code)]
     #[error("Database not loaded")]
     NotLoaded,
     #[error("Invalid password or keyfile")]
@@ -268,12 +269,16 @@ impl Database {
     pub fn create_entry(&mut self, entry_data: EntryData) -> Result<(), DatabaseError> {
         let group = self.find_group_by_uuid_mut(&entry_data.group_uuid)?;
         
-        let mut entry = Entry::default();
         // Use provided UUID or generate a new one
-        entry.uuid = if entry_data.uuid.is_empty() {
+        let uuid = if entry_data.uuid.is_empty() {
             Uuid::new_v4()
         } else {
             Uuid::parse_str(&entry_data.uuid).map_err(|_| DatabaseError::InvalidUuid)?
+        };
+        
+        let mut entry = Entry {
+            uuid,
+            ..Default::default()
         };
         
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
