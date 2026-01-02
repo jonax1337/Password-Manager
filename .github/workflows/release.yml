@@ -1,0 +1,80 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: v$VERSION"
+      
+      - name: Check if release exists
+        id: check_release
+        run: |
+          if gh release view ${{ steps.version.outputs.version }} > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.version.outputs.version }} exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.version.outputs.version }} does not exist"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Delete existing release
+        if: steps.check_release.outputs.exists == 'true'
+        run: |
+          echo "Deleting existing release ${{ steps.version.outputs.version }}"
+          gh release delete ${{ steps.version.outputs.version }} --yes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tauri-app-windows
+          path: ./artifacts/windows
+        continue-on-error: true
+      
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tauri-app-linux
+          path: ./artifacts/linux
+        continue-on-error: true
+      
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tauri-app-macos
+          path: ./artifacts/macos
+        continue-on-error: true
+      
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -R ./artifacts || echo "No artifacts found"
+      
+      - name: Create GitHub Release
+        run: |
+          gh release create ${{ steps.version.outputs.version }} \
+            --title "Password Manager ${{ steps.version.outputs.version }}" \
+            --notes "Release ${{ steps.version.outputs.version }}" \
+            --draft=false \
+            --prerelease=false \
+            ./artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
