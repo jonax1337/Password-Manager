@@ -118,14 +118,28 @@ jobs:
       
       - name: Create GitHub Release
         run: |
-          # Find all files recursively, excluding directories
-          FILES=$(find ./artifacts -type f)
+          # Find only the actual installer files we want to upload
+          find ./artifacts -type f \( \
+            -name "*.msi" -o \
+            -name "*.exe" -o \
+            -name "*.deb" -o \
+            -name "*.AppImage" -o \
+            -name "*.dmg" -o \
+            -name "*.rpm" \
+          \) -print0 | xargs -0 -I {} echo "{}"
           
-          gh release create ${{ steps.version.outputs.version }} \
+          # Create release with files
+          find ./artifacts -type f \( \
+            -name "*.msi" -o \
+            -name "*.exe" -o \
+            -name "*.deb" -o \
+            -name "*.AppImage" -o \
+            -name "*.dmg" -o \
+            -name "*.rpm" \
+          \) -print0 | xargs -0 gh release create ${{ steps.version.outputs.version }} \
             --title "Password Manager ${{ steps.version.outputs.version }}" \
             --notes "Release ${{ steps.version.outputs.version }}" \
             --draft=false \
-            --prerelease=false \
-            $FILES
+            --prerelease=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
