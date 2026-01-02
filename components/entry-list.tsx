@@ -612,10 +612,8 @@ export function EntryList({
                                 {col.id === 'title' && (
                                   <div 
                                     className="cursor-pointer"
-                                    onDoubleClick={async () => {
-                                      await touchEntry(entry.uuid);
+                                    onDoubleClick={() => {
                                       onSelectEntry(entry);
-                                      onRefresh();
                                     }}
                                   >
                                     <p className="truncate text-sm font-medium">{entry.title}</p>

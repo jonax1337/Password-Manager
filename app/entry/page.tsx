@@ -91,11 +91,27 @@ function EntryContent() {
     };
   }, []);
 
-  const handleClose = () => {
-    // Close this window
-    if (typeof window !== 'undefined') {
-      window.close();
+  const handleClose = async () => {
+    const entryWindow = getCurrentWindow();
+    
+    // Check for unsaved changes
+    if (hasUnsavedChangesRef.current) {
+      const shouldClose = await ask(
+        "You have unsaved changes. Are you sure you want to discard them?",
+        {
+          title: "Unsaved Changes",
+          kind: "warning",
+        }
+      );
+
+      if (!shouldClose) {
+        return; // User chose to stay
+      }
     }
+    
+    // Set flag to prevent re-triggering prompt from onCloseRequested
+    isClosingRef.current = true;
+    await entryWindow.destroy();
   };
 
   const handleRefresh = () => {
