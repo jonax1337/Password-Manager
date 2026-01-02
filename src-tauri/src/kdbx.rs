@@ -378,11 +378,11 @@ impl Database {
             if let Some(expiry_str) = entry_data.expiry_time {
                 if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M") {
                     // Subtract 1 hour to compensate for keepass-rs timezone conversion
-                    expiry = expiry - chrono::Duration::hours(1);
+                    expiry -= chrono::Duration::hours(1);
                     entry.times.set_expiry(expiry);
                 } else if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M:%S") {
                     // Subtract 1 hour to compensate for keepass-rs timezone conversion
-                    expiry = expiry - chrono::Duration::hours(1);
+                    expiry -= chrono::Duration::hours(1);
                     entry.times.set_expiry(expiry);
                 }
             }
@@ -441,11 +441,11 @@ impl Database {
                 if !expiry_str.is_empty() {
                     if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M") {
                         // Subtract 1 hour to compensate for keepass-rs timezone conversion
-                        expiry = expiry - chrono::Duration::hours(1);
+                        expiry -= chrono::Duration::hours(1);
                         entry.times.set_expiry(expiry);
                     } else if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M:%S") {
                         // Subtract 1 hour to compensate for keepass-rs timezone conversion
-                        expiry = expiry - chrono::Duration::hours(1);
+                        expiry -= chrono::Duration::hours(1);
                         entry.times.set_expiry(expiry);
                     }
                 }
