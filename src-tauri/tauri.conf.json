@@ -113,7 +113,11 @@
         }
       },
       "rpm": {
-        "desktopTemplate": "linux/simple-password-manager.desktop"
+        "desktopTemplate": "linux/simple-password-manager.desktop",
+        "files": {
+          "linux/kdbx-mime.xml": "/usr/share/mime/packages/kdbx-mime.xml",
+          "icons/file-icon.png": "/usr/share/icons/hicolor/128x128/mimetypes/application-x-keepass.png"
+        }
       }
     }
   },
