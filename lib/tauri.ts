@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 
+export interface CustomField {
+  name: string;
+  value: string;
+  protected: boolean;
+}
+
 export interface EntryData {
   uuid: string;
   title: string;
@@ -17,6 +23,7 @@ export interface EntryData {
   expiry_time?: string;
   expires: boolean;
   usage_count: number;
+  custom_fields: CustomField[];
 }
 
 export interface GroupData {

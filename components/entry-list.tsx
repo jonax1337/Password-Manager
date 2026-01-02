@@ -152,34 +152,34 @@ export function EntryList({
     let bVal: string | number = '';
 
     switch (column) {
-      case 'title':
-        aVal = a.title.toLowerCase();
-        bVal = b.title.toLowerCase();
-        break;
-      case 'username':
-        aVal = a.username.toLowerCase();
-        bVal = b.username.toLowerCase();
-        break;
-      case 'password':
-        aVal = a.password ? 1 : 0;
-        bVal = b.password ? 1 : 0;
-        break;
-      case 'url':
-        aVal = a.url.toLowerCase();
-        bVal = b.url.toLowerCase();
-        break;
-      case 'notes':
-        aVal = a.notes.toLowerCase();
-        bVal = b.notes.toLowerCase();
-        break;
-      case 'created':
-        aVal = a.created || '';
-        bVal = b.created || '';
-        break;
-      case 'modified':
-        aVal = a.modified || '';
-        bVal = b.modified || '';
-        break;
+        case 'title':
+          aVal = a.title.toLowerCase();
+          bVal = b.title.toLowerCase();
+          break;
+        case 'username':
+          aVal = a.username.toLowerCase();
+          bVal = b.username.toLowerCase();
+          break;
+        case 'password':
+          aVal = a.password ? 1 : 0;
+          bVal = b.password ? 1 : 0;
+          break;
+        case 'url':
+          aVal = a.url.toLowerCase();
+          bVal = b.url.toLowerCase();
+          break;
+        case 'notes':
+          aVal = a.notes.toLowerCase();
+          bVal = b.notes.toLowerCase();
+          break;
+        case 'created':
+          aVal = a.created || '';
+          bVal = b.created || '';
+          break;
+        case 'modified':
+          aVal = a.modified || '';
+          bVal = b.modified || '';
+          break;
     }
 
     if (aVal < bVal) return direction === 'asc' ? -1 : 1;
@@ -244,6 +244,7 @@ export function EntryList({
         is_favorite: false,
         expires: false,
         usage_count: 0,
+        custom_fields: [],
       };
 
       await createEntry(newEntry);

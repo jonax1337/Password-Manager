@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, Save, Copy, Trash2, Edit, Wand2, Check } from "lucide-react";
+import { Eye, EyeOff, Save, Copy, Trash2, Edit, Wand2, Check, Plus, X, Shield } from "lucide-react";
 import { updateEntry, deleteEntry, generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import type { EntryData } from "@/lib/tauri";
+import type { EntryData, CustomField } from "@/lib/tauri";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { IconPicker } from "@/components/icon-picker";
 import {
@@ -40,6 +41,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   const [urlError, setUrlError] = useState<string | null>(null);
   const [copiedUsername, setCopiedUsername] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [copiedCustomField, setCopiedCustomField] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -444,6 +446,113 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
               onChange={(e) => handleChange("tags", e.target.value)}
               placeholder="Comma-separated tags"
             />
+          </div>
+
+          {/* Custom Fields Section */}
+          <Separator className="my-4" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">Custom Fields</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newField: CustomField = { name: "", value: "", protected: false };
+                  setFormData(prev => ({
+                    ...prev,
+                    custom_fields: [...(prev.custom_fields || []), newField]
+                  }));
+                  setHasChanges(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Field
+              </Button>
+            </div>
+            
+            {(formData.custom_fields || []).map((field, index) => (
+              <div key={index} className="space-y-2 p-3 border rounded-md bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={field.name}
+                    onChange={(e) => {
+                      const newFields = [...(formData.custom_fields || [])];
+                      newFields[index] = { ...newFields[index], name: e.target.value };
+                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                      setHasChanges(true);
+                    }}
+                    placeholder="Field name"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      const newFields = (formData.custom_fields || []).filter((_, i) => i !== index);
+                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                      setHasChanges(true);
+                    }}
+                    title="Remove field"
+                  >
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={field.protected ? "password" : "text"}
+                      value={field.value}
+                      onChange={(e) => {
+                        const newFields = [...(formData.custom_fields || [])];
+                        newFields[index] = { ...newFields[index], value: e.target.value };
+                        setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                        setHasChanges(true);
+                      }}
+                      placeholder="Field value"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      handleCopy(field.value, field.name, "password");
+                      setCopiedCustomField(index);
+                      setTimeout(() => setCopiedCustomField(null), 2000);
+                    }}
+                    disabled={!field.value}
+                    title="Copy value"
+                  >
+                    {copiedCustomField === index ? (
+                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`protected-${index}`}
+                    checked={field.protected}
+                    onCheckedChange={(checked) => {
+                      const newFields = [...(formData.custom_fields || [])];
+                      newFields[index] = { ...newFields[index], protected: checked === true };
+                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                      setHasChanges(true);
+                    }}
+                  />
+                  <Label htmlFor={`protected-${index}`} className="text-sm text-muted-foreground flex items-center gap-1 cursor-pointer">
+                    <Shield className="h-3 w-3" />
+                    Protected
+                  </Label>
+                </div>
+              </div>
+            ))}
+            
+            {(!formData.custom_fields || formData.custom_fields.length === 0) && (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                No custom fields. Click "Add Field" to create one.
+              </p>
+            )}
           </div>
         </div>
       </ScrollArea>

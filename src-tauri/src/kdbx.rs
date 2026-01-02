@@ -31,6 +31,13 @@ pub enum DatabaseError {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct CustomField {
+    pub name: String,
+    pub value: String,
+    pub protected: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EntryData {
     pub uuid: String,
     pub title: String,
@@ -48,6 +55,7 @@ pub struct EntryData {
     pub expiry_time: Option<String>,
     pub expires: bool,
     pub usage_count: usize,
+    pub custom_fields: Vec<CustomField>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -259,6 +267,26 @@ impl Database {
         let last_accessed = entry.times.get_last_access().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
         let expiry_time = entry.times.get_expiry().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
         
+        // Standard fields to exclude from custom fields
+        let standard_fields = ["Title", "UserName", "Password", "URL", "Notes", "Tags", "_Favorite"];
+        
+        // Extract custom fields
+        let custom_fields: Vec<CustomField> = entry.fields.iter()
+            .filter(|(key, _)| !standard_fields.contains(&key.as_str()))
+            .map(|(key, value)| {
+                let (val, protected) = match value {
+                    Value::Unprotected(s) => (s.clone(), false),
+                    Value::Protected(s) => (String::from_utf8_lossy(s.unsecure()).to_string(), true),
+                    Value::Bytes(b) => (String::from_utf8_lossy(b).to_string(), false),
+                };
+                CustomField {
+                    name: key.clone(),
+                    value: val,
+                    protected,
+                }
+            })
+            .collect();
+        
         EntryData {
             uuid,
             title: entry.get_title().unwrap_or("").to_string(),
@@ -276,6 +304,7 @@ impl Database {
             expiry_time,
             expires: entry.times.expires,
             usage_count: entry.times.usage_count,
+            custom_fields,
         }
     }
 
@@ -322,6 +351,16 @@ impl Database {
             entry.fields.insert("_Favorite".to_string(), Value::Unprotected("true".to_string()));
         }
         
+        // Add custom fields
+        for field in entry_data.custom_fields {
+            let value = if field.protected {
+                Value::Protected(field.value.into())
+            } else {
+                Value::Unprotected(field.value)
+            };
+            entry.fields.insert(field.name, value);
+        }
+        
         // Set icon ID if provided
         if let Some(icon_id) = entry_data.icon_id {
             entry.icon_id = Some(icon_id);
@@ -339,6 +378,12 @@ impl Database {
         entry.times.set_last_modification(now);
         entry.times.set_last_access(now);
         
+        // Standard fields to keep
+        let standard_fields = ["Title", "UserName", "Password", "URL", "Notes", "Tags", "_Favorite"];
+        
+        // Remove old custom fields (keep only standard fields)
+        entry.fields.retain(|key, _| standard_fields.contains(&key.as_str()));
+        
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
         entry.fields.insert("UserName".to_string(), Value::Unprotected(entry_data.username));
         entry.fields.insert("Password".to_string(), Value::Protected(entry_data.password.into()));
@@ -351,6 +396,16 @@ impl Database {
             entry.fields.insert("_Favorite".to_string(), Value::Unprotected("true".to_string()));
         } else {
             entry.fields.remove("_Favorite");
+        }
+        
+        // Add custom fields
+        for field in entry_data.custom_fields {
+            let value = if field.protected {
+                Value::Protected(field.value.into())
+            } else {
+                Value::Unprotected(field.value)
+            };
+            entry.fields.insert(field.name, value);
         }
         
         // Update icon ID
