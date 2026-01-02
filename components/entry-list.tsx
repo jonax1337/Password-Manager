@@ -580,11 +580,12 @@ export function EntryList({
                       >
                         <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
                           <div
-                            className={`flex items-center gap-2 border-b px-4 py-2.5 hover:bg-accent ${
+                            className={`flex items-center gap-2 border-b px-4 py-2.5 hover:bg-accent cursor-pointer select-none ${
                               selectedEntry?.uuid === entry.uuid || isContextMenuOpen || selectedEntries.has(entry.uuid) ? "bg-accent" : ""
                             }`}
                             onMouseEnter={() => setHoveredEntry(entry)}
                             onMouseLeave={() => setHoveredEntry(null)}
+                            onDoubleClick={() => onSelectEntry(entry)}
                           >
                             {/* Checkbox */}
                             <div className="flex items-center w-8 justify-center flex-shrink-0">
@@ -604,36 +605,31 @@ export function EntryList({
                             {visibleColumns.map((col) => (
                               <div key={col.id} className="flex-1 overflow-hidden min-w-0">
                                 {col.id === 'title' && (
-                                  <div 
-                                    className="cursor-pointer"
-                                    onDoubleClick={() => {
-                                      onSelectEntry(entry);
-                                    }}
-                                  >
-                                    <p className="truncate text-sm font-medium">{entry.title}</p>
-                                  </div>
+                                  <p className="truncate text-sm font-medium">{entry.title}</p>
                                 )}
                                 {col.id === 'username' && (
-                                  <div 
-                                    className="cursor-pointer"
-                                    onDoubleClick={() => handleCopyField(entry.username, "Username", entry.uuid)}
+                                  <p 
+                                    className="truncate text-sm text-muted-foreground cursor-pointer"
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyField(entry.username, "Username", entry.uuid);
+                                    }}
                                     title="Double-click to copy"
                                   >
-                                    <p className="truncate text-sm text-muted-foreground">
-                                      {entry.username || "—"}
-                                    </p>
-                                  </div>
+                                    {entry.username || "—"}
+                                  </p>
                                 )}
                                 {col.id === 'password' && (
-                                  <div 
-                                    className="cursor-pointer"
-                                    onDoubleClick={() => handleCopyField(entry.password, "Password", entry.uuid)}
+                                  <p 
+                                    className="truncate text-sm text-muted-foreground font-mono cursor-pointer"
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyField(entry.password, "Password", entry.uuid);
+                                    }}
                                     title="Double-click to copy"
                                   >
-                                    <p className="truncate text-sm text-muted-foreground font-mono">
-                                      {entry.password ? "••••••••" : "—"}
-                                    </p>
-                                  </div>
+                                    {entry.password ? "••••••••" : "—"}
+                                  </p>
                                 )}
                                 {col.id === 'url' && (
                                   <div className="flex items-center gap-1">
