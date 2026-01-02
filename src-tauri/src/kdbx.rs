@@ -414,17 +414,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn touch_entry(&mut self, entry_uuid: &str) -> Result<(), DatabaseError> {
-        let entry = self.find_entry_by_uuid_mut(entry_uuid)?;
-        
-        // Update last access timestamp and increment usage count
-        let now = Times::now();
-        entry.times.set_last_access(now);
-        entry.times.usage_count += 1;
-        
-        Ok(())
-    }
-
     pub fn delete_entry(&mut self, entry_uuid: &str) -> Result<(), DatabaseError> {
         let group_uuid = self.find_entry_group_uuid(entry_uuid)?;
         let group = self.find_group_by_uuid_mut(&group_uuid)?;

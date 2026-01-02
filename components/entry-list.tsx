@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Trash2, Copy, ExternalLink, X, Edit, User, Key, ChevronRight, Star, Clock, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenuSeparator, ContextMenuCheckboxItem } from "@/components/ui/context-menu";
-import { getEntries, createEntry, deleteEntry, updateEntry, touchEntry } from "@/lib/tauri";
+import { getEntries, createEntry, deleteEntry, updateEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import { getIconComponent, IconPicker } from "@/components/icon-picker";
@@ -384,12 +384,6 @@ export function EntryList({
 
     try {
       await writeText(text);
-
-      // Update last access time when copying password
-      if (fieldName === "Password") {
-        await touchEntry(entryUuid);
-        onRefresh();
-      }
 
       // Clear any existing timeout
       if (clearTimeoutId) {
@@ -783,17 +777,6 @@ export function EntryList({
                 <span className="font-medium">Modified:</span>
                 <span>{formatTimestamp(hoveredEntry.modified)}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3 w-3" />
-                <span className="font-medium">Accessed:</span>
-                <span>{formatTimestamp(hoveredEntry.last_accessed)}</span>
-              </div>
-              {hoveredEntry.usage_count > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium">Usage:</span>
-                  <span>{hoveredEntry.usage_count}</span>
-                </div>
-              )}
             </>
           )}
         </div>

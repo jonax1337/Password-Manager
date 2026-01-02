@@ -666,16 +666,6 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   <Label className="text-muted-foreground">Modified:</Label>
                   <span className="text-sm">{formatTimestamp(entry.modified)}</span>
                 </div>
-                <div className="grid grid-cols-[120px_1fr] items-center gap-2">
-                  <Label className="text-muted-foreground">Last Accessed:</Label>
-                  <span className="text-sm">{formatTimestamp(entry.last_accessed)}</span>
-                </div>
-                {entry.usage_count > 0 && (
-                  <div className="grid grid-cols-[120px_1fr] items-center gap-2">
-                    <Label className="text-muted-foreground">Usage Count:</Label>
-                    <span className="text-sm">{entry.usage_count}</span>
-                  </div>
-                )}
               </div>
             </div>
           </ScrollArea>
