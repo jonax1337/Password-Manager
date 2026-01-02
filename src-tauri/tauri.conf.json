@@ -84,7 +84,9 @@
     "resources": [
       "icons/file-icon.ico",
       "icons/file-icon.icns",
-      "icons/file-icon.png"
+      "icons/file-icon.png",
+      "linux/kdbx-mime.xml",
+      "linux/simple-password-manager.desktop"
     ],
     "fileAssociations": [
       {
@@ -106,18 +108,10 @@
     },
     "linux": {
       "deb": {
-        "desktopTemplate": "linux/simple-password-manager.desktop",
-        "files": {
-          "linux/kdbx-mime.xml": "/usr/share/mime/packages/kdbx-mime.xml",
-          "icons/file-icon.png": "/usr/share/icons/hicolor/128x128/mimetypes/application-x-keepass.png"
-        }
+        "desktopTemplate": "linux/simple-password-manager.desktop"
       },
       "rpm": {
-        "desktopTemplate": "linux/simple-password-manager.desktop",
-        "files": {
-          "linux/kdbx-mime.xml": "/usr/share/mime/packages/kdbx-mime.xml",
-          "icons/file-icon.png": "/usr/share/icons/hicolor/128x128/mimetypes/application-x-keepass.png"
-        }
+        "desktopTemplate": "linux/simple-password-manager.desktop"
       }
     }
   },
