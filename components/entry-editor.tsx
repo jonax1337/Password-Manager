@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Save, Copy, Edit, Wand2, Check, Plus, X, Shield, Clock } from "lucide-react";
+import { Eye, EyeOff, Save, Copy, Edit, Wand2, Check, Plus, X, Shield, Clock, Calendar } from "lucide-react";
 import { updateEntry, deleteEntry, generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -347,7 +347,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   onClick={() => handleCopy(formData.username, "Username", "username")}
                   disabled={!formData.username}
                   title="Copy username"
-                  className="h-9 w-9"
+                  className="h-10 w-10"
                 >
                   {copiedUsername ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -384,7 +384,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   onClick={() => handleCopy(formData.password, "Password", "password")}
                   disabled={!formData.password}
                   title="Copy password"
-                  className="h-9 w-9"
+                  className="h-10 w-10"
                 >
                   {copiedPassword ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -414,7 +414,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   disabled={showPassword}
                 />
                 <Select value="" onValueChange={handleGeneratePassword}>
-                  <SelectTrigger className="h-9 w-9 px-0 justify-center [&>svg[aria-hidden]]:hidden" title="Generate password">
+                  <SelectTrigger className="h-10 w-10 px-0 justify-center [&>svg[aria-hidden]]:hidden" title="Generate password">
                     <Wand2 className="h-4 w-4" />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,20 +490,80 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   />
                   <Label htmlFor="expires">Expires:</Label>
                 </div>
-                <Input
-                  type="datetime-local"
-                  value={formData.expiry_time?.slice(0, 16) || ''}
-                  onChange={(e) => {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      expiry_time: e.target.value,
-                      expires: true // Auto-enable expires when setting a time
-                    }));
-                    setHasChanges(true);
-                  }}
-                  disabled={!formData.expires}
-                  className="max-w-[250px]"
-                />
+                <div className="flex gap-2 w-full">
+                  <Input
+                    type="datetime-local"
+                    value={formData.expiry_time?.slice(0, 16) || ''}
+                    onChange={(e) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        expiry_time: e.target.value,
+                        expires: true // Auto-enable expires when setting a time
+                      }));
+                      setHasChanges(true);
+                    }}
+                    disabled={!formData.expires}
+                    className="flex-1"
+                  />
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      const now = new Date();
+                      let targetDate = new Date();
+                      
+                      switch(value) {
+                        case '1day':
+                          targetDate.setDate(now.getDate() + 1);
+                          break;
+                        case '1week':
+                          targetDate.setDate(now.getDate() + 7);
+                          break;
+                        case '2weeks':
+                          targetDate.setDate(now.getDate() + 14);
+                          break;
+                        case '1month':
+                          targetDate.setMonth(now.getMonth() + 1);
+                          break;
+                        case '3months':
+                          targetDate.setMonth(now.getMonth() + 3);
+                          break;
+                        case '6months':
+                          targetDate.setMonth(now.getMonth() + 6);
+                          break;
+                        case '1year':
+                          targetDate.setFullYear(now.getFullYear() + 1);
+                          break;
+                      }
+                      
+                      const year = targetDate.getFullYear();
+                      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                      const day = String(targetDate.getDate()).padStart(2, '0');
+                      const hours = String(targetDate.getHours()).padStart(2, '0');
+                      const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+                      
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        expiry_time: `${year}-${month}-${day}T${hours}:${minutes}`,
+                        expires: true
+                      }));
+                      setHasChanges(true);
+                    }}
+                    disabled={!formData.expires}
+                  >
+                    <SelectTrigger className="h-10 w-10 px-0 justify-center [&>svg[aria-hidden]]:hidden" title="Set expiry preset">
+                      <Clock className="h-4 w-4" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1day">1 Day</SelectItem>
+                      <SelectItem value="1week">1 Week</SelectItem>
+                      <SelectItem value="2weeks">2 Weeks</SelectItem>
+                      <SelectItem value="1month">1 Month</SelectItem>
+                      <SelectItem value="3months">3 Months</SelectItem>
+                      <SelectItem value="6months">6 Months</SelectItem>
+                      <SelectItem value="1year">1 Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </ScrollArea>

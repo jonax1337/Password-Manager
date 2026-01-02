@@ -14,10 +14,6 @@ export function PasswordStrengthMeter({
 }: PasswordStrengthMeterProps) {
   const strength = calculatePasswordStrength(password);
 
-  if (!password) {
-    return null;
-  }
-
   // Determine if text should be white or black based on strength level
   const getTextColor = () => {
     // Use white text for darker backgrounds (weak, medium), black for lighter (strong, very strong)
@@ -30,21 +26,27 @@ export function PasswordStrengthMeter({
   return (
     <div className={cn("relative", className)}>
       <div className="h-6 w-full rounded-md bg-secondary/20 overflow-hidden border border-border">
-        <div
-          className="h-full transition-all duration-300 flex items-center justify-end px-2"
-          style={{
-            width: `${Math.min((strength.bits / 128) * 100, 100)}%`,
-            background: strength.gradient,
-            minWidth: "50px",
-          }}
-        >
-          <span 
-            className="text-xs font-semibold whitespace-nowrap"
-            style={{ color: getTextColor() }}
+        {password ? (
+          <div
+            className="h-full transition-all duration-300 flex items-center justify-end px-2"
+            style={{
+              width: `${Math.min((strength.bits / 128) * 100, 100)}%`,
+              background: strength.gradient,
+              minWidth: "50px",
+            }}
           >
-            {strength.bits} bits
-          </span>
-        </div>
+            <span 
+              className="text-xs font-semibold whitespace-nowrap"
+              style={{ color: getTextColor() }}
+            >
+              {strength.bits} bits
+            </span>
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <span className="text-xs text-muted-foreground">No password</span>
+          </div>
+        )}
       </div>
     </div>
   );

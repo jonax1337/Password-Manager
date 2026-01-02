@@ -30,7 +30,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="mb-2 text-xs text-muted-foreground px-1">
-          KeePass Standard Icons (68)
+          Standard Icons (68)
         </div>
         <ScrollArea className="h-64" type="always">
           <div className="grid grid-cols-8 gap-1 pr-3">
