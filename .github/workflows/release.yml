@@ -118,11 +118,14 @@ jobs:
       
       - name: Create GitHub Release
         run: |
+          # Find all files recursively, excluding directories
+          FILES=$(find ./artifacts -type f)
+          
           gh release create ${{ steps.version.outputs.version }} \
             --title "Password Manager ${{ steps.version.outputs.version }}" \
             --notes "Release ${{ steps.version.outputs.version }}" \
             --draft=false \
             --prerelease=false \
-            ./artifacts/**/*
+            $FILES
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
