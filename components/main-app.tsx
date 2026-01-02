@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -59,6 +59,18 @@ export function MainApp({ onClose }: MainAppProps) {
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
+
+  // Define handleRefresh early so it can be used in useEffect hooks
+  const handleRefresh = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+    setIsDirty(true); // Mark as dirty on any change
+    // Don't clear selected entry - keep it open after refresh
+    
+    // Reload favorites if favorites view is active
+    if (isFavoritesView) {
+      getFavoriteEntries().then(setFavoriteEntries);
+    }
+  }, [isFavoritesView]);
 
   // Initialize and listen for auto-lock setting changes
   useEffect(() => {
@@ -356,17 +368,6 @@ export function MainApp({ onClose }: MainAppProps) {
     }
     
     setCloseAction(null);
-  };
-
-  const handleRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
-    setIsDirty(true); // Mark as dirty on any change
-    // Don't clear selected entry - keep it open after refresh
-    
-    // Reload favorites if favorites view is active
-    if (isFavoritesView) {
-      getFavoriteEntries().then(setFavoriteEntries);
-    }
   };
 
   const handleGroupSelect = async (uuid: string) => {
