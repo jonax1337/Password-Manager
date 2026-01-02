@@ -11,6 +11,12 @@ export interface EntryData {
   group_uuid: string;
   icon_id?: number;
   is_favorite: boolean;
+  created?: string;
+  modified?: string;
+  last_accessed?: string;
+  expiry_time?: string;
+  expires: boolean;
+  usage_count: number;
 }
 
 export interface GroupData {
@@ -63,6 +69,10 @@ export async function updateEntry(entry: EntryData): Promise<void> {
 
 export async function deleteEntry(entryUuid: string): Promise<void> {
   return await invoke<void>("delete_entry", { entryUuid });
+}
+
+export async function touchEntry(entryUuid: string): Promise<void> {
+  return await invoke<void>("touch_entry", { entryUuid });
 }
 
 export async function createGroup(

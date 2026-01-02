@@ -1,7 +1,7 @@
 use argon2::Version as Argon2Version;
 use keepass::{
     config::{DatabaseConfig, KdfConfig},
-    db::{Entry, Group, Node, Value},
+    db::{Entry, Group, Node, Value, Times},
     Database as KeepassDatabase, DatabaseKey,
 };
 use secrecy::{ExposeSecret, SecretString};
@@ -42,6 +42,12 @@ pub struct EntryData {
     pub group_uuid: String,
     pub icon_id: Option<usize>,
     pub is_favorite: bool,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+    pub last_accessed: Option<String>,
+    pub expiry_time: Option<String>,
+    pub expires: bool,
+    pub usage_count: usize,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -246,6 +252,13 @@ impl Database {
     fn convert_entry(&self, entry: &Entry, group_uuid: &str) -> EntryData {
         let uuid = entry.uuid.to_string();
         let is_favorite = entry.get("_Favorite").unwrap_or("") == "true";
+        
+        // Extract timestamps and format them
+        let created = entry.times.get_creation().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
+        let modified = entry.times.get_last_modification().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
+        let last_accessed = entry.times.get_last_access().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
+        let expiry_time = entry.times.get_expiry().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
+        
         EntryData {
             uuid,
             title: entry.get_title().unwrap_or("").to_string(),
@@ -257,6 +270,12 @@ impl Database {
             group_uuid: group_uuid.to_string(),
             icon_id: entry.icon_id,
             is_favorite,
+            created,
+            modified,
+            last_accessed,
+            expiry_time,
+            expires: entry.times.expires,
+            usage_count: entry.times.usage_count,
         }
     }
 
@@ -280,6 +299,12 @@ impl Database {
             uuid,
             ..Default::default()
         };
+        
+        // Set creation and modification timestamps
+        let now = Times::now();
+        entry.times.set_creation(now);
+        entry.times.set_last_modification(now);
+        entry.times.set_last_access(now);
         
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
         entry.fields.insert("UserName".to_string(), Value::Unprotected(entry_data.username));
@@ -309,6 +334,11 @@ impl Database {
     pub fn update_entry(&mut self, entry_data: EntryData) -> Result<(), DatabaseError> {
         let entry = self.find_entry_by_uuid_mut(&entry_data.uuid)?;
         
+        // Update modification and access timestamps
+        let now = Times::now();
+        entry.times.set_last_modification(now);
+        entry.times.set_last_access(now);
+        
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
         entry.fields.insert("UserName".to_string(), Value::Unprotected(entry_data.username));
         entry.fields.insert("Password".to_string(), Value::Protected(entry_data.password.into()));
@@ -325,6 +355,17 @@ impl Database {
         
         // Update icon ID
         entry.icon_id = entry_data.icon_id;
+        
+        Ok(())
+    }
+
+    pub fn touch_entry(&mut self, entry_uuid: &str) -> Result<(), DatabaseError> {
+        let entry = self.find_entry_by_uuid_mut(entry_uuid)?;
+        
+        // Update last access timestamp and increment usage count
+        let now = Times::now();
+        entry.times.set_last_access(now);
+        entry.times.usage_count += 1;
         
         Ok(())
     }

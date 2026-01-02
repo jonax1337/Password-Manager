@@ -174,6 +174,18 @@ pub fn delete_entry(state: State<AppState>, entry_uuid: String) -> Result<(), St
 }
 
 #[tauri::command]
+pub fn touch_entry(state: State<AppState>, entry_uuid: String) -> Result<(), String> {
+    let mut database_lock = state.database.lock().unwrap();
+
+    if let Some(db) = database_lock.as_mut() {
+        db.touch_entry(&entry_uuid).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
 pub fn create_group(
     state: State<AppState>,
     name: String,

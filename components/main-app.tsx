@@ -489,6 +489,7 @@ export function MainApp({ onClose }: MainAppProps) {
                 ? getGroupPath(rootGroup, selectedGroupUuid)
                 : undefined
             }
+            databasePath={dbPath}
           />
         </div>
       </div>

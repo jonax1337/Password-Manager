@@ -1,4 +1,5 @@
 const LAST_DATABASE_KEY = "lastDatabasePath";
+const COLUMN_CONFIG_PREFIX = "columnConfig_";
 
 export function saveLastDatabasePath(path: string): void {
   if (typeof window !== "undefined") {
@@ -17,4 +18,40 @@ export function clearLastDatabasePath(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(LAST_DATABASE_KEY);
   }
+}
+
+// Column configuration per database
+export interface ColumnVisibility {
+  title: boolean;
+  username: boolean;
+  password: boolean;
+  url: boolean;
+  notes: boolean;
+  created: boolean;
+  modified: boolean;
+}
+
+function getDatabaseKey(dbPath: string): string {
+  // Create a simple hash from the path for the storage key
+  return COLUMN_CONFIG_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+}
+
+export function saveColumnConfig(dbPath: string, config: ColumnVisibility): void {
+  if (typeof window !== "undefined" && dbPath) {
+    localStorage.setItem(getDatabaseKey(dbPath), JSON.stringify(config));
+  }
+}
+
+export function getColumnConfig(dbPath: string): ColumnVisibility | null {
+  if (typeof window !== "undefined" && dbPath) {
+    const stored = localStorage.getItem(getDatabaseKey(dbPath));
+    if (stored) {
+      try {
+        return JSON.parse(stored) as ColumnVisibility;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
 }
