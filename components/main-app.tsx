@@ -48,7 +48,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
   const [initialExpandedGroups, setInitialExpandedGroups] = useState<Set<string> | undefined>(undefined);
-  const [autoLockMinutes, setAutoLockMinutes] = useState<number>(0);
+  const [autoLockSeconds, setAutoLockSeconds] = useState<number>(0);
   const isDirtyRef = useRef(isDirty);
   const lastActivityRef = useRef<number>(Date.now());
   const autoLockTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -63,21 +63,21 @@ export function MainApp({ onClose }: MainAppProps) {
   // Initialize and listen for auto-lock setting changes
   useEffect(() => {
     // Load initial setting
-    const minutes = parseInt(localStorage.getItem("autoLockMinutes") || "0");
-    setAutoLockMinutes(minutes);
+    const seconds = parseInt(localStorage.getItem("autoLockSeconds") || "0");
+    setAutoLockSeconds(seconds);
 
     // Listen for storage changes (from settings window)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "autoLockMinutes" && e.newValue) {
-        const newMinutes = parseInt(e.newValue);
-        setAutoLockMinutes(newMinutes);
+      if (e.key === "autoLockSeconds" && e.newValue) {
+        const newSeconds = parseInt(e.newValue);
+        setAutoLockSeconds(newSeconds);
       }
     };
 
     // Also listen for custom event from same window (settings dialog in same window)
     const handleCustomStorageChange = () => {
-      const minutes = parseInt(localStorage.getItem("autoLockMinutes") || "0");
-      setAutoLockMinutes(minutes);
+      const seconds = parseInt(localStorage.getItem("autoLockSeconds") || "0");
+      setAutoLockSeconds(seconds);
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -134,7 +134,7 @@ export function MainApp({ onClose }: MainAppProps) {
 
   // Auto-lock functionality
   useEffect(() => {
-    if (autoLockMinutes === 0) {
+    if (autoLockSeconds === 0) {
       // Auto-lock disabled
       if (autoLockTimerRef.current) {
         clearInterval(autoLockTimerRef.current);
@@ -157,16 +157,16 @@ export function MainApp({ onClose }: MainAppProps) {
     window.addEventListener('click', updateActivity);
     window.addEventListener('scroll', updateActivity);
 
-    // Check inactivity every 10 seconds
+    // Check inactivity every second
     autoLockTimerRef.current = setInterval(() => {
       const inactiveTime = Date.now() - lastActivityRef.current;
-      const autoLockMs = autoLockMinutes * 60 * 1000;
+      const autoLockMs = autoLockSeconds * 1000;
 
       if (inactiveTime >= autoLockMs) {
         clearInterval(autoLockTimerRef.current!);
         performClose(false); // Auto-lock is not manual logout - preserve Quick Unlock
       }
-    }, 10000);
+    }, 1000);
 
     return () => {
       window.removeEventListener('mousemove', updateActivity);
@@ -178,7 +178,7 @@ export function MainApp({ onClose }: MainAppProps) {
         clearInterval(autoLockTimerRef.current);
       }
     };
-  }, [autoLockMinutes]); // Re-initialize when setting changes
+  }, [autoLockSeconds]); // Re-initialize when setting changes
 
   // Listen for entry updates from child windows
   useEffect(() => {

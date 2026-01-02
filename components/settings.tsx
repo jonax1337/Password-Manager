@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Settings as SettingsIcon, Moon, Sun, Monitor } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2 } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
@@ -15,19 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
-  const [autoLockMinutes, setAutoLockMinutes] = useState<string>("0");
+  const [autoLockSeconds, setAutoLockSeconds] = useState<string>("0");
   const [closeToTray, setCloseToTray] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     // Load auto-lock setting from localStorage
-    const saved = localStorage.getItem("autoLockMinutes");
+    const saved = localStorage.getItem("autoLockSeconds");
     if (saved) {
-      setAutoLockMinutes(saved);
+      setAutoLockSeconds(saved);
     }
     // Load close to tray setting
     const closeToTraySaved = localStorage.getItem("closeToTray");
@@ -40,8 +43,10 @@ export function Settings() {
   };
 
   const handleAutoLockChange = (value: string) => {
-    setAutoLockMinutes(value);
-    localStorage.setItem("autoLockMinutes", value);
+    // Only allow numbers
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setAutoLockSeconds(numericValue);
+    localStorage.setItem("autoLockSeconds", numericValue);
     // Dispatch custom event to notify main app of setting change
     window.dispatchEvent(new Event('autoLockChanged'));
   };
@@ -58,113 +63,161 @@ export function Settings() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <h1 className="text-lg font-semibold">Settings</h1>
-        <Button variant="ghost" size="icon" className="pointer-events-none">
-          <SettingsIcon className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
+        <div className="h-10 w-10 flex items-center justify-center rounded-md bg-primary/10">
+          <SettingsIcon className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold">Settings</h1>
+          <p className="text-sm text-muted-foreground">Configure application preferences</p>
+        </div>
       </div>
 
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="space-y-8 p-6">
-          {/* Appearance Section */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-semibold">Appearance</h2>
-              <p className="text-sm text-muted-foreground">
-                Customize the look and feel of the application
-              </p>
-            </div>
+      <Tabs defaultValue="appearance" className="flex-1 flex flex-col">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+          <TabsTrigger value="appearance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Appearance
+          </TabsTrigger>
+          <TabsTrigger value="security" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="application" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Application
+          </TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-3">
-              <Label>Theme</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <Button
-                  variant={theme === "light" ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setTheme("light")}
-                >
-                  <Sun className="mr-2 h-4 w-4" />
-                  Light
-                </Button>
-                <Button
-                  variant={theme === "dark" ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setTheme("dark")}
-                >
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark
-                </Button>
-                <Button
-                  variant={theme === "system" ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setTheme("system")}
-                >
-                  <Monitor className="mr-2 h-4 w-4" />
-                  System
-                </Button>
-              </div>
+        {/* Appearance Tab */}
+        <TabsContent value="appearance" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Theme</CardTitle>
+                  </div>
+                  <CardDescription>Select your preferred color scheme</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setTheme("light")}
+                      className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                        theme === "light" 
+                          ? "border-primary bg-primary/5" 
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-white border shadow-sm flex items-center justify-center">
+                        <Sun className="h-5 w-5 text-yellow-500" />
+                      </div>
+                      <span className="text-sm font-medium">Light</span>
+                    </button>
+                    <button
+                      onClick={() => setTheme("dark")}
+                      className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                        theme === "dark" 
+                          ? "border-primary bg-primary/5" 
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">
+                        <Moon className="h-5 w-5 text-slate-300" />
+                      </div>
+                      <span className="text-sm font-medium">Dark</span>
+                    </button>
+                    <button
+                      onClick={() => setTheme("system")}
+                      className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                        theme === "system" 
+                          ? "border-primary bg-primary/5" 
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-white to-slate-900 border flex items-center justify-center">
+                        <Monitor className="h-5 w-5 text-slate-500" />
+                      </div>
+                      <span className="text-sm font-medium">System</span>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
+          </ScrollArea>
+        </TabsContent>
 
-          {/* Security Section */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-semibold">Security</h2>
-              <p className="text-sm text-muted-foreground">
-                Configure security and privacy settings
-              </p>
+        {/* Security Tab */}
+        <TabsContent value="security" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Auto-Lock</CardTitle>
+                  </div>
+                  <CardDescription>Lock database after inactivity</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={autoLockSeconds}
+                      onChange={(e) => handleAutoLockChange(e.target.value)}
+                      className="w-24 text-center"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-muted-foreground">seconds</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Set to 0 to disable auto-lock
+                  </p>
+                </CardContent>
+              </Card>
             </div>
+          </ScrollArea>
+        </TabsContent>
 
-            <div className="space-y-3">
-              <Label htmlFor="auto-lock">Auto-Lock</Label>
-              <Select value={autoLockMinutes} onValueChange={handleAutoLockChange}>
-                <SelectTrigger id="auto-lock">
-                  <SelectValue placeholder="Select auto-lock duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Disabled</SelectItem>
-                  <SelectItem value="1">1 minute</SelectItem>
-                  <SelectItem value="2">2 minutes</SelectItem>
-                  <SelectItem value="5">5 minutes</SelectItem>
-                  <SelectItem value="10">10 minutes</SelectItem>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Automatically lock the database after a period of inactivity
-              </p>
+        {/* Application Tab */}
+        <TabsContent value="application" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Minimize2 className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">System Tray</CardTitle>
+                  </div>
+                  <CardDescription>Control window close behavior</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="close-to-tray" className="text-sm">Close to tray</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Minimize to system tray when clicking X
+                      </p>
+                    </div>
+                    <Switch
+                      id="close-to-tray"
+                      checked={closeToTray}
+                      onCheckedChange={handleCloseToTrayChange}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
 
-          {/* Application Section */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-semibold">Application</h2>
-              <p className="text-sm text-muted-foreground">
-                Configure application behavior
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="close-to-tray">Close to System Tray</Label>
-                <p className="text-xs text-muted-foreground">
-                  Minimize to system tray instead of closing when clicking X
-                </p>
-              </div>
-              <Switch
-                id="close-to-tray"
-                checked={closeToTray}
-                onCheckedChange={handleCloseToTrayChange}
-              />
-            </div>
-          </div>
-        </div>
-      </ScrollArea>
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
+        <Button variant="outline" onClick={handleClose}>
+          Close
+        </Button>
+      </div>
     </div>
   );
 }

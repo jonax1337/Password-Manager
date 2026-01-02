@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, Save, Copy, Trash2, Edit, Wand2, Check, Plus, X, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff, Save, Copy, Edit, Wand2, Check, Plus, X, Shield, Clock } from "lucide-react";
 import { updateEntry, deleteEntry, generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/select";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { emit } from "@tauri-apps/api/event";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface EntryEditorProps {
   entry: EntryData;
@@ -265,62 +273,94 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     }
   };
 
+  const formatTimestamp = (timestamp?: string) => {
+    if (!timestamp) return "—";
+    try {
+      const date = new Date(timestamp);
+      return new Intl.DateTimeFormat('de-DE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(date);
+    } catch {
+      return "—";
+    }
+  };
+
+  const [selectedCustomField, setSelectedCustomField] = useState<number | null>(null);
+  const [editingCustomField, setEditingCustomField] = useState<CustomField | null>(null);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <h1 className="text-lg font-semibold">Edit Entry</h1>
-        <Button variant="ghost" size="icon" className="pointer-events-none">
-          <Edit className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
+        <IconPicker value={iconId} onChange={handleIconChange} />
+        <div>
+          <h1 className="text-lg font-semibold">Edit Entry</h1>
+          <p className="text-sm text-muted-foreground">You are editing an existing entry.</p>
+        </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="space-y-3 p-4 pb-6">
-          <div className="space-y-1">
-            <Label htmlFor="title">Title</Label>
-            <div className="flex gap-2">
-              <IconPicker value={iconId} onChange={handleIconChange} />
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="Entry title"
-                className="flex-1"
-              />
-            </div>
-          </div>
+      <Tabs defaultValue="general" className="flex-1 flex flex-col">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+          <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            General
+          </TabsTrigger>
+          <TabsTrigger value="advanced" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Advanced
+          </TabsTrigger>
+          <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            History
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="space-y-1">
-            <Label htmlFor="username">Username</Label>
-            <div className="flex gap-2">
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => handleChange("username", e.target.value)}
-                className="flex-1"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleCopy(formData.username, "Username", "username")}
-                disabled={!formData.username}
-                title="Copy username"
-              >
-                {copiedUsername ? (
-                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+        {/* General Tab */}
+        <TabsContent value="general" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {/* Title Row */}
+              <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                <Label htmlFor="title">Title:</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  placeholder="Entry title"
+                />
+              </div>
 
-          <div>
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              {/* Username Row */}
+              <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
+                <Label htmlFor="username">User name:</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => handleChange("username", e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleCopy(formData.username, "Username", "username")}
+                  disabled={!formData.username}
+                  title="Copy username"
+                  className="h-9 w-9"
+                >
+                  {copiedUsername ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Password Row */}
+              <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
+                <Label htmlFor="password">Password:</Label>
+                <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -335,11 +375,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                     className="absolute right-0 top-0 h-full"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
                 <Button
@@ -348,22 +384,21 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   onClick={() => handleCopy(formData.password, "Password", "password")}
                   disabled={!formData.password}
                   title="Copy password"
+                  className="h-9 w-9"
                 >
                   {copiedPassword ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
               </div>
-            </div>
-            
-            {/* Repeat Password Field */}
-            <div className="space-y-1 mt-3">
-              <Label htmlFor="repeat-password">Repeat Password</Label>
-              <div className="flex gap-2">
+
+              {/* Repeat Password Row */}
+              <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
+                <Label htmlFor="repeat">Repeat:</Label>
                 <Input
-                  id="repeat-password"
+                  id="repeat"
                   type="password"
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
@@ -375,190 +410,290 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                       variant: "destructive",
                     });
                   }}
-                  className={repeatPassword && formData.password && formData.password !== repeatPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
-                  placeholder="Repeat password to confirm"
+                  className={repeatPassword && formData.password && formData.password !== repeatPassword ? "border-red-500" : ""}
                   disabled={showPassword}
                 />
                 <Select value="" onValueChange={handleGeneratePassword}>
-                  <SelectTrigger className="w-10 h-10 flex items-center justify-center [&>svg[aria-hidden]]:hidden hover:bg-accent hover:text-accent-foreground transition-colors" title="Generate password">
+                  <SelectTrigger className="h-9 w-9 px-0 justify-center [&>svg[aria-hidden]]:hidden" title="Generate password">
                     <Wand2 className="h-4 w-4" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="weak" className="pl-2">Weak (8)</SelectItem>
-                    <SelectItem value="medium" className="pl-2">Medium (12)</SelectItem>
-                    <SelectItem value="strong" className="pl-2">Strong (16)</SelectItem>
-                    <SelectItem value="very-strong" className="pl-2">Very Strong (20)</SelectItem>
-                    <SelectItem value="maximum" className="pl-2">Maximum (32)</SelectItem>
+                    <SelectItem value="weak">Weak (8)</SelectItem>
+                    <SelectItem value="medium">Medium (12)</SelectItem>
+                    <SelectItem value="strong">Strong (16)</SelectItem>
+                    <SelectItem value="very-strong">Very Strong (20)</SelectItem>
+                    <SelectItem value="maximum">Maximum (32)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            
-            <div className="mt-4 mb-6">
-              <PasswordStrengthMeter password={formData.password} />
-            </div>
-          </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="url">URL</Label>
-            <div className="flex gap-2">
-              <div className="flex-1 space-y-1">
-                <Input
-                  id="url"
-                  type="url"
-                  value={formData.url}
-                  onChange={(e) => handleChange("url", e.target.value)}
-                  className={urlError ? "border-red-500 focus-visible:ring-red-500" : ""}
-                  placeholder="https://example.com"
-                />
-                {urlError && (
-                  <p className="text-xs text-red-600 dark:text-red-400">{urlError}</p>
-                )}
+              {/* Quality/Strength Row */}
+              <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                <Label>Quality:</Label>
+                <PasswordStrengthMeter password={formData.password} />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleCopy(formData.url, "URL", "password")}
-                disabled={!formData.url}
-                title="Copy URL"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="notes">Notes</Label>
-            <textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Additional notes..."
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="tags">Tags</Label>
-            <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) => handleChange("tags", e.target.value)}
-              placeholder="Comma-separated tags"
-            />
-          </div>
-
-          {/* Custom Fields Section */}
-          <Separator className="my-4" />
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Custom Fields</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newField: CustomField = { name: "", value: "", protected: false };
-                  setFormData(prev => ({
-                    ...prev,
-                    custom_fields: [...(prev.custom_fields || []), newField]
-                  }));
-                  setHasChanges(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Field
-              </Button>
-            </div>
-            
-            {(formData.custom_fields || []).map((field, index) => (
-              <div key={index} className="space-y-2 p-3 border rounded-md bg-muted/30">
-                <div className="flex items-center gap-2">
+              {/* URL Row */}
+              <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                <Label htmlFor="url">URL:</Label>
+                <div className="space-y-1">
                   <Input
-                    value={field.name}
-                    onChange={(e) => {
-                      const newFields = [...(formData.custom_fields || [])];
-                      newFields[index] = { ...newFields[index], name: e.target.value };
-                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
-                      setHasChanges(true);
-                    }}
-                    placeholder="Field name"
-                    className="flex-1"
+                    id="url"
+                    type="url"
+                    value={formData.url}
+                    onChange={(e) => handleChange("url", e.target.value)}
+                    className={urlError ? "border-red-500" : ""}
+                    placeholder="https://example.com"
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const newFields = (formData.custom_fields || []).filter((_, i) => i !== index);
-                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                  {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="grid grid-cols-[80px_1fr] items-start gap-2">
+                <Label htmlFor="notes" className="pt-2">Notes:</Label>
+                <textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => handleChange("notes", e.target.value)}
+                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Additional notes..."
+                />
+              </div>
+
+              {/* Expires */}
+              <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="expires"
+                    checked={formData.expires}
+                    onCheckedChange={(checked) => {
+                      setFormData(prev => ({ ...prev, expires: checked === true }));
                       setHasChanges(true);
                     }}
-                    title="Remove field"
-                  >
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
+                  />
+                  <Label htmlFor="expires">Expires:</Label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type={field.protected ? "password" : "text"}
-                      value={field.value}
-                      onChange={(e) => {
-                        const newFields = [...(formData.custom_fields || [])];
-                        newFields[index] = { ...newFields[index], value: e.target.value };
-                        setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                <Input
+                  type="datetime-local"
+                  value={formData.expiry_time?.slice(0, 16) || ''}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, expiry_time: e.target.value }));
+                    setHasChanges(true);
+                  }}
+                  disabled={!formData.expires}
+                  className="max-w-[250px]"
+                />
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Advanced Tab - String Fields */}
+        <TabsContent value="advanced" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <div className="border rounded-md">
+                <div className="px-3 py-2 bg-muted/50 border-b font-medium text-sm">
+                  String fields
+                </div>
+                <div className="flex">
+                  <div className="flex-1">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[150px]">Name</TableHead>
+                          <TableHead>Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(formData.custom_fields || []).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                              No custom fields
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          (formData.custom_fields || []).map((field, index) => (
+                            <TableRow 
+                              key={index}
+                              className={selectedCustomField === index ? "bg-accent" : "cursor-pointer"}
+                              onClick={() => setSelectedCustomField(index)}
+                            >
+                              <TableCell className="font-medium">
+                                {field.protected && <Shield className="h-3 w-3 inline mr-1" />}
+                                {field.name || "(unnamed)"}
+                              </TableCell>
+                              <TableCell className="font-mono">
+                                {field.protected ? "••••••••" : field.value || "—"}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="border-l p-2 flex flex-col gap-2 w-[100px]">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newField: CustomField = { name: "", value: "", protected: false };
+                        setFormData(prev => ({
+                          ...prev,
+                          custom_fields: [...(prev.custom_fields || []), newField]
+                        }));
                         setHasChanges(true);
+                        setSelectedCustomField((formData.custom_fields || []).length);
+                        setEditingCustomField(newField);
                       }}
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={selectedCustomField === null}
+                      onClick={() => {
+                        if (selectedCustomField !== null) {
+                          setEditingCustomField(formData.custom_fields?.[selectedCustomField] || null);
+                        }
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={selectedCustomField === null}
+                      onClick={() => {
+                        if (selectedCustomField !== null) {
+                          const newFields = (formData.custom_fields || []).filter((_, i) => i !== selectedCustomField);
+                          setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                          setHasChanges(true);
+                          setSelectedCustomField(null);
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Custom Field Dialog */}
+              {editingCustomField !== null && selectedCustomField !== null && (
+                <div className="border rounded-md p-4 space-y-3 bg-muted/30">
+                  <h4 className="font-medium">Edit Field</h4>
+                  <div className="grid grid-cols-[60px_1fr] items-center gap-2">
+                    <Label>Name:</Label>
+                    <Input
+                      value={editingCustomField.name}
+                      onChange={(e) => setEditingCustomField(prev => prev ? { ...prev, name: e.target.value } : null)}
+                      placeholder="Field name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-[60px_1fr] items-center gap-2">
+                    <Label>Value:</Label>
+                    <Input
+                      type={editingCustomField.protected ? "password" : "text"}
+                      value={editingCustomField.value}
+                      onChange={(e) => setEditingCustomField(prev => prev ? { ...prev, value: e.target.value } : null)}
                       placeholder="Field value"
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      handleCopy(field.value, field.name, "password");
-                      setCopiedCustomField(index);
-                      setTimeout(() => setCopiedCustomField(null), 2000);
-                    }}
-                    disabled={!field.value}
-                    title="Copy value"
-                  >
-                    {copiedCustomField === index ? (
-                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={editingCustomField.protected}
+                      onCheckedChange={(checked) => setEditingCustomField(prev => prev ? { ...prev, protected: checked === true } : null)}
+                    />
+                    <Label className="flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Protected
+                    </Label>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingCustomField(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const newFields = [...(formData.custom_fields || [])];
+                        newFields[selectedCustomField] = editingCustomField;
+                        setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                        setHasChanges(true);
+                        setEditingCustomField(null);
+                      }}
+                    >
+                      OK
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id={`protected-${index}`}
-                    checked={field.protected}
-                    onCheckedChange={(checked) => {
-                      const newFields = [...(formData.custom_fields || [])];
-                      newFields[index] = { ...newFields[index], protected: checked === true };
-                      setFormData(prev => ({ ...prev, custom_fields: newFields }));
-                      setHasChanges(true);
-                    }}
+              )}
+
+              {/* Tags */}
+              <div className="border rounded-md">
+                <div className="px-3 py-2 bg-muted/50 border-b font-medium text-sm">
+                  Tags
+                </div>
+                <div className="p-3">
+                  <Input
+                    value={formData.tags}
+                    onChange={(e) => handleChange("tags", e.target.value)}
+                    placeholder="Comma-separated tags"
                   />
-                  <Label htmlFor={`protected-${index}`} className="text-sm text-muted-foreground flex items-center gap-1 cursor-pointer">
-                    <Shield className="h-3 w-3" />
-                    Protected
-                  </Label>
                 </div>
               </div>
-            ))}
-            
-            {(!formData.custom_fields || formData.custom_fields.length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-2">
-                No custom fields. Click "Add Field" to create one.
-              </p>
-            )}
-          </div>
-        </div>
-      </ScrollArea>
+            </div>
+          </ScrollArea>
+        </TabsContent>
 
-      <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background px-4 py-3 border-t">
-        <Button onClick={handleSave} size="sm" disabled={!hasChanges || !!urlError || !!(formData.password && repeatPassword && formData.password !== repeatPassword)}>
+        {/* History Tab */}
+        <TabsContent value="history" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <div className="space-y-3">
+                <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                  <Label className="text-muted-foreground">Created:</Label>
+                  <span className="text-sm">{formatTimestamp(entry.created)}</span>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                  <Label className="text-muted-foreground">Modified:</Label>
+                  <span className="text-sm">{formatTimestamp(entry.modified)}</span>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                  <Label className="text-muted-foreground">Last Accessed:</Label>
+                  <span className="text-sm">{formatTimestamp(entry.last_accessed)}</span>
+                </div>
+                {entry.usage_count > 0 && (
+                  <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                    <Label className="text-muted-foreground">Usage Count:</Label>
+                    <span className="text-sm">{entry.usage_count}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
+        <Button 
+          variant="outline" 
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSave} 
+          disabled={!hasChanges || !!urlError || !!(formData.password && repeatPassword && formData.password !== repeatPassword)}
+        >
           <Save className="mr-2 h-4 w-4" />
           Save
         </Button>
