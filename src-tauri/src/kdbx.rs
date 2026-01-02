@@ -1,4 +1,5 @@
 use argon2::Version as Argon2Version;
+use chrono::NaiveDateTime;
 use keepass::{
     config::{DatabaseConfig, KdfConfig},
     db::{Entry, Group, Node, Value, Times},
@@ -265,7 +266,12 @@ impl Database {
         let created = entry.times.get_creation().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
         let modified = entry.times.get_last_modification().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
         let last_accessed = entry.times.get_last_access().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
-        let expiry_time = entry.times.get_expiry().map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string());
+        // Format expiry without seconds for datetime-local compatibility
+        // Add 1 hour to compensate for keepass-rs timezone conversion when reading
+        let expiry_time = entry.times.get_expiry().map(|t| {
+            let adjusted = *t + chrono::Duration::hours(1);
+            adjusted.format("%Y-%m-%dT%H:%M").to_string()
+        });
         
         // Standard fields to exclude from custom fields
         let standard_fields = ["Title", "UserName", "Password", "URL", "Notes", "Tags", "_Favorite"];
@@ -366,6 +372,22 @@ impl Database {
             entry.icon_id = Some(icon_id);
         }
         
+        // Set expiry settings
+        entry.times.expires = entry_data.expires;
+        if entry_data.expires {
+            if let Some(expiry_str) = entry_data.expiry_time {
+                if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M") {
+                    // Subtract 1 hour to compensate for keepass-rs timezone conversion
+                    expiry = expiry - chrono::Duration::hours(1);
+                    entry.times.set_expiry(expiry);
+                } else if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M:%S") {
+                    // Subtract 1 hour to compensate for keepass-rs timezone conversion
+                    expiry = expiry - chrono::Duration::hours(1);
+                    entry.times.set_expiry(expiry);
+                }
+            }
+        }
+        
         group.add_child(entry);
         Ok(())
     }
@@ -410,6 +432,25 @@ impl Database {
         
         // Update icon ID
         entry.icon_id = entry_data.icon_id;
+        
+        // Update expiry settings
+        entry.times.expires = entry_data.expires;
+        if entry_data.expires {
+            // If expires is checked, we need to set an expiry time
+            if let Some(expiry_str) = entry_data.expiry_time {
+                if !expiry_str.is_empty() {
+                    if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M") {
+                        // Subtract 1 hour to compensate for keepass-rs timezone conversion
+                        expiry = expiry - chrono::Duration::hours(1);
+                        entry.times.set_expiry(expiry);
+                    } else if let Ok(mut expiry) = NaiveDateTime::parse_from_str(&expiry_str, "%Y-%m-%dT%H:%M:%S") {
+                        // Subtract 1 hour to compensate for keepass-rs timezone conversion
+                        expiry = expiry - chrono::Duration::hours(1);
+                        entry.times.set_expiry(expiry);
+                    }
+                }
+            }
+        }
         
         Ok(())
     }

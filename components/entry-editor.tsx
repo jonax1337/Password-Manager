@@ -468,7 +468,23 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                     id="expires"
                     checked={formData.expires}
                     onCheckedChange={(checked) => {
-                      setFormData(prev => ({ ...prev, expires: checked === true }));
+                      const isChecked = checked === true;
+                      const updates: Partial<typeof formData> = { expires: isChecked };
+                      
+                      // Set default expiry time to 1 year from now if enabling and no time set
+                      if (isChecked && !formData.expiry_time) {
+                        const oneYearFromNow = new Date();
+                        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                        // Use local time, not UTC (KeePass stores local time)
+                        const year = oneYearFromNow.getFullYear();
+                        const month = String(oneYearFromNow.getMonth() + 1).padStart(2, '0');
+                        const day = String(oneYearFromNow.getDate()).padStart(2, '0');
+                        const hours = String(oneYearFromNow.getHours()).padStart(2, '0');
+                        const minutes = String(oneYearFromNow.getMinutes()).padStart(2, '0');
+                        updates.expiry_time = `${year}-${month}-${day}T${hours}:${minutes}`;
+                      }
+                      
+                      setFormData(prev => ({ ...prev, ...updates }));
                       setHasChanges(true);
                     }}
                   />
@@ -478,7 +494,11 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   type="datetime-local"
                   value={formData.expiry_time?.slice(0, 16) || ''}
                   onChange={(e) => {
-                    setFormData(prev => ({ ...prev, expiry_time: e.target.value }));
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      expiry_time: e.target.value,
+                      expires: true // Auto-enable expires when setting a time
+                    }));
                     setHasChanges(true);
                   }}
                   disabled={!formData.expires}

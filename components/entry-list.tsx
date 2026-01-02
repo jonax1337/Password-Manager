@@ -777,6 +777,13 @@ export function EntryList({
                 <span className="font-medium">Modified:</span>
                 <span>{formatTimestamp(hoveredEntry.modified)}</span>
               </div>
+              {hoveredEntry.expires && hoveredEntry.expiry_time && (
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3 w-3" />
+                  <span className="font-medium">Expires:</span>
+                  <span>{formatTimestamp(hoveredEntry.expiry_time)}</span>
+                </div>
+              )}
             </>
           )}
         </div>
