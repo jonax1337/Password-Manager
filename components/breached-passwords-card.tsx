@@ -22,6 +22,7 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
   const [isLoading, setIsLoading] = useState(false);
   const [dismissedUuids, setDismissedUuids] = useState<string[]>([]);
   const [selectedUuids, setSelectedUuids] = useState<Set<string>>(new Set());
+  const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
       });
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
   };
 
@@ -101,6 +103,11 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
   const filteredBreachedEntries = breachedEntries.filter(
     entry => !dismissedUuids.includes(entry.uuid)
   );
+
+  // Don't render until dismissed entries are loaded to prevent flickering
+  if (!isInitialized) {
+    return null;
+  }
 
   if (filteredBreachedEntries.length === 0 && !isLoading) {
     return null;
