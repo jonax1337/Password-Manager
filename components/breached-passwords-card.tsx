@@ -54,7 +54,7 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to check for breached passwords",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to check for breached passwords"),
         variant: "destructive",
       });
     } finally {

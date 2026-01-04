@@ -218,7 +218,7 @@ export function EntryList({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to load entries",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to load entries"),
         variant: "destructive",
       });
     }
@@ -267,7 +267,7 @@ export function EntryList({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to create entry",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to create entry"),
         variant: "destructive",
       });
     }
@@ -294,7 +294,7 @@ export function EntryList({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to delete entry",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to delete entry"),
         variant: "destructive",
       });
     }
@@ -328,7 +328,7 @@ export function EntryList({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to delete entries",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to delete entries"),
         variant: "destructive",
       });
     }

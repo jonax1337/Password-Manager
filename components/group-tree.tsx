@@ -126,7 +126,7 @@ export function GroupTree({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to create group",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to create group"),
         variant: "destructive",
       });
     }
@@ -149,7 +149,7 @@ export function GroupTree({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to rename group",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to rename group"),
         variant: "destructive",
       });
     }
@@ -186,7 +186,7 @@ export function GroupTree({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to delete group",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to delete group"),
         variant: "destructive",
       });
     }
@@ -257,7 +257,7 @@ export function GroupTree({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to move group",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to move group"),
         variant: "destructive",
       });
     }

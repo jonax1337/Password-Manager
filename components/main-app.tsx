@@ -260,7 +260,7 @@ export function MainApp({ onClose }: MainAppProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to load groups",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to load groups"),
         variant: "destructive",
       });
     }
@@ -277,7 +277,7 @@ export function MainApp({ onClose }: MainAppProps) {
       } catch (error: any) {
         toast({
           title: "Search Error",
-          description: error || "Failed to search entries",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to search entries"),
           variant: "destructive",
         });
       }
@@ -299,7 +299,7 @@ export function MainApp({ onClose }: MainAppProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to save database",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to save database"),
         variant: "destructive",
       });
     }
@@ -335,7 +335,7 @@ export function MainApp({ onClose }: MainAppProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to close database",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to close database"),
         variant: "destructive",
       });
     }
@@ -409,7 +409,7 @@ export function MainApp({ onClose }: MainAppProps) {
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error || "Failed to load favorites",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to load favorites"),
           variant: "destructive",
         });
       }

@@ -35,7 +35,7 @@ export function Dashboard({ refreshTrigger, databasePath }: DashboardProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to open entry",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to open entry"),
         variant: "destructive",
       });
     }
