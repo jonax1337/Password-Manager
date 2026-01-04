@@ -22,8 +22,6 @@ fn main() {
             database: Mutex::new(None),
             initial_file_path: Mutex::new(None),
             dismissed_breaches: Mutex::new(HashMap::new()),
-            last_hibp_check: Mutex::new(None),
-            hibp_enabled: Mutex::new(false), // Opt-in by default
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_initial_file_path,
@@ -50,8 +48,6 @@ fn main() {
             commands::generate_password,
             commands::get_dashboard_stats,
             commands::check_breached_passwords,
-            commands::set_hibp_enabled,
-            commands::get_hibp_enabled,
             commands::save_dismissed_breach,
             commands::get_dismissed_breaches,
             commands::clear_dismissed_breach,
