@@ -39,7 +39,7 @@ export function PasswordGenerator({ onClose }: PasswordGeneratorProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to generate password",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to generate password"),
         variant: "destructive",
       });
     }

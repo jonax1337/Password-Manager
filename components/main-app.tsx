@@ -19,6 +19,7 @@ import { saveDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { Dashboard } from "@/components/dashboard";
 import { openEntryWindow, openSettingsWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
@@ -42,6 +43,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [favoriteEntries, setFavoriteEntries] = useState<EntryData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isFavoritesView, setIsFavoritesView] = useState(false);
+  const [isDashboardView, setIsDashboardView] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [dbPath, setDbPath] = useState<string>("");
@@ -246,18 +248,19 @@ export function MainApp({ onClose }: MainAppProps) {
       const groups = await getGroups();
       setRootGroup(groups);
       
-      // Load persisted state on first load
-      if (!selectedGroupUuid && dbPath) {
-        const state = loadGroupTreeState(dbPath, groups.uuid, groups);
-        setSelectedGroupUuid(state.selectedGroup || groups.uuid);
-        setInitialExpandedGroups(new Set(state.expandedGroups));
-      } else if (!selectedGroupUuid) {
-        setSelectedGroupUuid(groups.uuid);
+      // Always start with dashboard on first load
+      if (!selectedGroupUuid) {
+        setSelectedGroupUuid("_dashboard");
+        setIsDashboardView(true);
+        if (dbPath) {
+          const state = loadGroupTreeState(dbPath, groups.uuid, groups);
+          setInitialExpandedGroups(new Set(state.expandedGroups));
+        }
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to load groups",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to load groups"),
         variant: "destructive",
       });
     }
@@ -267,13 +270,14 @@ export function MainApp({ onClose }: MainAppProps) {
     setSearchQuery(query);
     if (query.trim()) {
       setIsSearching(true);
+      setIsDashboardView(false);
       try {
         const results = await searchEntries(query);
         setSearchResults(results);
       } catch (error: any) {
         toast({
           title: "Search Error",
-          description: error || "Failed to search entries",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to search entries"),
           variant: "destructive",
         });
       }
@@ -295,7 +299,7 @@ export function MainApp({ onClose }: MainAppProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to save database",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to save database"),
         variant: "destructive",
       });
     }
@@ -316,12 +320,22 @@ export function MainApp({ onClose }: MainAppProps) {
       const appWindow = getCurrentWindow();
       await appWindow.setTitle("Simple Password Manager");
       
+      // Reset state to dashboard for next open
+      setSelectedGroupUuid("");
+      setIsDashboardView(true);
+      setIsFavoritesView(false);
+      setIsSearching(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      setFavoriteEntries([]);
+      setRootGroup(null);
+      
       await closeDatabase();
       onClose(isManualLogout);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to close database",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to close database"),
         variant: "destructive",
       });
     }
@@ -376,6 +390,16 @@ export function MainApp({ onClose }: MainAppProps) {
     setSearchQuery("");
     setSearchResults([]);
     
+    // Handle dashboard view
+    if (uuid === "_dashboard") {
+      setIsDashboardView(true);
+      setIsFavoritesView(false);
+      setFavoriteEntries([]);
+      return;
+    }
+    
+    setIsDashboardView(false);
+    
     // Handle favorites view
     if (uuid === "_favorites") {
       setIsFavoritesView(true);
@@ -385,7 +409,7 @@ export function MainApp({ onClose }: MainAppProps) {
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error || "Failed to load favorites",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to load favorites"),
           variant: "destructive",
         });
       }
@@ -476,22 +500,29 @@ export function MainApp({ onClose }: MainAppProps) {
         </ResizablePanel>
 
         <div className="flex-1">
-          <EntryList
-            groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
-            searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
-            selectedEntry={null}
-            onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
-            onRefresh={handleRefresh}
-            isSearching={isSearching || isFavoritesView}
-            selectedGroupName={
-              isFavoritesView 
-                ? "Favorites"
-                : rootGroup && selectedGroupUuid 
-                ? getGroupPath(rootGroup, selectedGroupUuid)
-                : undefined
-            }
-            databasePath={dbPath}
-          />
+          {/* Keep Dashboard mounted but hidden to preserve state */}
+          <div className={isDashboardView ? "" : "hidden"}>
+            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+          </div>
+          
+          {!isDashboardView && (
+            <EntryList
+              groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
+              searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
+              selectedEntry={null}
+              onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
+              onRefresh={handleRefresh}
+              isSearching={isSearching || isFavoritesView}
+              selectedGroupName={
+                isFavoritesView 
+                  ? "Favorites"
+                  : rootGroup && selectedGroupUuid 
+                  ? getGroupPath(rootGroup, selectedGroupUuid)
+                  : undefined
+              }
+              databasePath={dbPath}
+            />
+          )}
         </div>
       </div>
 

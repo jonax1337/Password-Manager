@@ -188,7 +188,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to update entry",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to update entry"),
         variant: "destructive",
       });
     }

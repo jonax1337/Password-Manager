@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
 
@@ -54,4 +56,57 @@ export function getColumnConfig(dbPath: string): ColumnVisibility | null {
     }
   }
   return null;
+}
+
+// Dismissed breach management using secure Tauri backend storage
+export async function saveDismissedBreach(dbPath: string, entryUuid: string): Promise<void> {
+  if (!dbPath) {
+    throw new Error("Database path is required to save dismissed breach");
+  }
+  if (!entryUuid) {
+    throw new Error("Entry UUID is required to save dismissed breach");
+  }
+  
+  try {
+    await invoke("save_dismissed_breach", { dbPath, entryUuid });
+  } catch (error) {
+    // Log detailed error for debugging (only visible in dev console, not exposed to user)
+    console.error("[Storage] Failed to save dismissed breach", { error });
+    // Throw generic error without sensitive details
+    throw new Error("Failed to save dismissed breach");
+  }
+}
+
+export async function getDismissedBreaches(dbPath: string): Promise<string[]> {
+  if (!dbPath) {
+    console.warn("[Storage] Database path missing, returning empty dismissed breaches array");
+    return [];
+  }
+  
+  try {
+    return await invoke<string[]>("get_dismissed_breaches", { dbPath });
+  } catch (error) {
+    // Log detailed error for debugging without exposing sensitive data
+    console.error("[Storage] Failed to get dismissed breaches", { error });
+    // Return empty array as fallback to prevent UI breakage
+    return [];
+  }
+}
+
+export async function clearDismissedBreach(dbPath: string, entryUuid: string): Promise<void> {
+  if (!dbPath) {
+    throw new Error("Database path is required to clear dismissed breach");
+  }
+  if (!entryUuid) {
+    throw new Error("Entry UUID is required to clear dismissed breach");
+  }
+  
+  try {
+    await invoke("clear_dismissed_breach", { dbPath, entryUuid });
+  } catch (error) {
+    // Log detailed error for debugging (only visible in dev console, not exposed to user)
+    console.error("[Storage] Failed to clear dismissed breach", { error });
+    // Throw generic error without sensitive details
+    throw new Error("Failed to clear dismissed breach");
+  }
 }
