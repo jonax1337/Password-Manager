@@ -15,14 +15,16 @@ interface BreachedPasswordsCardProps {
   refreshTrigger?: number;
   databasePath?: string;
   onEditEntry: (entryUuid: string) => void;
+  isDirty?: boolean;
 }
 
-export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntry }: BreachedPasswordsCardProps) {
+export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntry, isDirty }: BreachedPasswordsCardProps) {
   const [breachedEntries, setBreachedEntries] = useState<BreachedEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [dismissedUuids, setDismissedUuids] = useState<string[]>([]);
   const [selectedUuids, setSelectedUuids] = useState<Set<string>>(new Set());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [lastCheckTrigger, setLastCheckTrigger] = useState<number | undefined>(undefined);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,9 +44,23 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
     }
   }, [databasePath]);
 
+  // Only check breached passwords on initial load or when database has unsaved changes
   useEffect(() => {
-    loadBreachedPasswords();
-  }, [refreshTrigger, databasePath]);
+    if (!databasePath) return;
+    
+    // Initial load
+    if (!isInitialized) {
+      loadBreachedPasswords();
+      return;
+    }
+    
+    // Only reload if there are unsaved changes (database was modified)
+    // This prevents unnecessary recalculations on every refresh
+    if (isDirty && lastCheckTrigger !== refreshTrigger) {
+      setLastCheckTrigger(refreshTrigger);
+      loadBreachedPasswords();
+    }
+  }, [refreshTrigger, databasePath, isDirty, isInitialized, lastCheckTrigger]);
 
   const loadBreachedPasswords = async () => {
     setIsLoading(true);
@@ -172,12 +188,13 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
     entry => !dismissedUuids.includes(entry.uuid)
   );
 
-  // Don't render until dismissed entries are loaded to prevent flickering
-  if (!isInitialized) {
+  // Show nothing if no breached entries and not loading (and initialized)
+  if (isInitialized && filteredBreachedEntries.length === 0 && !isLoading) {
     return null;
   }
-
-  if (filteredBreachedEntries.length === 0 && !isLoading) {
+  
+  // Show nothing while initial load is happening (before any data)
+  if (!isInitialized && breachedEntries.length === 0 && isLoading) {
     return null;
   }
 

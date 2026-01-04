@@ -500,9 +500,12 @@ export function MainApp({ onClose }: MainAppProps) {
         </ResizablePanel>
 
         <div className="flex-1">
-          {isDashboardView ? (
-            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} />
-          ) : (
+          {/* Keep Dashboard mounted but hidden to preserve state */}
+          <div className={isDashboardView ? "" : "hidden"}>
+            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+          </div>
+          
+          {!isDashboardView && (
             <EntryList
               groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
               searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}

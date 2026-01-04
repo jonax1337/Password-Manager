@@ -22,9 +22,10 @@ import { openEntryWindow } from "@/lib/window";
 interface DashboardProps {
   refreshTrigger?: number;
   databasePath?: string;
+  isDirty?: boolean;
 }
 
-export function Dashboard({ refreshTrigger, databasePath }: DashboardProps) {
+export function Dashboard({ refreshTrigger, databasePath, isDirty }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const { toast } = useToast();
 
@@ -90,6 +91,7 @@ export function Dashboard({ refreshTrigger, databasePath }: DashboardProps) {
           refreshTrigger={refreshTrigger}
           databasePath={databasePath}
           onEditEntry={handleEditEntry}
+          isDirty={isDirty}
         />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
