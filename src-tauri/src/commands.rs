@@ -336,29 +336,26 @@ pub fn check_breached_passwords(state: State<AppState>) -> Result<Vec<BreachedEn
     
     if let Some(db) = database_lock.as_ref() {
         let all_entries = db.get_all_entries();
-        let mut breached_entries = Vec::new();
         
-        for entry in all_entries {
-            if entry.password.is_empty() {
-                continue;
-            }
-            
-            // Check if password is breached using HIBP API
-            match check_password_breach(&entry.password) {
-                Ok(count) if count > 0 => {
-                    breached_entries.push(BreachedEntry {
+        let breached_entries: Vec<BreachedEntry> = all_entries
+            .into_par_iter()
+            .filter(|entry| !entry.password.is_empty())
+            .filter_map(|entry| {
+                match check_password_breach(&entry.password) {
+                    Ok(count) if count > 0 => Some(BreachedEntry {
                         uuid: entry.uuid,
                         title: entry.title,
                         username: entry.username,
                         breach_count: count,
-                    });
+                    }),
+                    Ok(_) => None,
+                    Err(e) => {
+                        eprintln!("Error checking password for {}: {}", entry.title, e);
+                        None
+                    }
                 }
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!("Error checking password for {}: {}", entry.title, e);
-                }
-            }
-        }
+            })
+            .collect();
         
         Ok(breached_entries)
     } else {
