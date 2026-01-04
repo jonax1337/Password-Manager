@@ -331,39 +331,45 @@ pub struct BreachedEntry {
 }
 
 #[tauri::command]
-pub fn check_breached_passwords(state: State<AppState>) -> Result<Vec<BreachedEntry>, String> {
-    let database_lock = state.database.lock().unwrap();
+pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<BreachedEntry>, String> {
+    // Extract all entries while holding the lock, then release it
+    let all_entries = {
+        let database_lock = state.database.lock().unwrap();
+        
+        if let Some(db) = database_lock.as_ref() {
+            db.get_all_entries()
+        } else {
+            return Err("No database loaded".to_string());
+        }
+    }; // Lock is dropped here
     
-    if let Some(db) = database_lock.as_ref() {
-        let all_entries = db.get_all_entries();
+    let mut breached_entries = Vec::new();
+    
+    for entry in all_entries {
+        if entry.password.is_empty() {
+            continue;
+        }
         
-        let breached_entries: Vec<BreachedEntry> = all_entries
-            .into_par_iter()
-            .filter(|entry| !entry.password.is_empty())
-            .filter_map(|entry| {
-                match check_password_breach(&entry.password) {
-                    Ok(count) if count > 0 => Some(BreachedEntry {
-                        uuid: entry.uuid,
-                        title: entry.title,
-                        username: entry.username,
-                        breach_count: count,
-                    }),
-                    Ok(_) => None,
-                    Err(e) => {
-                        eprintln!("Error checking password for {}: {}", entry.title, e);
-                        None
-                    }
-                }
-            })
-            .collect();
-        
-        Ok(breached_entries)
-    } else {
-        Err("No database loaded".to_string())
+        match check_password_breach(&entry.password).await {
+            Ok(count) if count > 0 => {
+                breached_entries.push(BreachedEntry {
+                    uuid: entry.uuid,
+                    title: entry.title,
+                    username: entry.username,
+                    breach_count: count,
+                });
+            }
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error checking password for {}: {}", entry.title, e);
+            }
+        }
     }
+    
+    Ok(breached_entries)
 }
 
-fn check_password_breach(password: &str) -> Result<u32, String> {
+async fn check_password_breach(password: &str) -> Result<u32, String> {
     // Hash the password using SHA-1
     let mut hasher = Sha1::new();
     hasher.update(password.as_bytes());
@@ -376,7 +382,7 @@ fn check_password_breach(password: &str) -> Result<u32, String> {
     
     // Query HIBP API
     let url = format!("https://api.pwnedpasswords.com/range/{}", prefix);
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("Simple-Password-Manager")
         .timeout(std::time::Duration::from_secs(10))
         .build()
@@ -385,6 +391,7 @@ fn check_password_breach(password: &str) -> Result<u32, String> {
     let response = client
         .get(&url)
         .send()
+        .await
         .map_err(|e| format!("Failed to query HIBP API: {}", e))?;
     
     if !response.status().is_success() {
@@ -393,6 +400,7 @@ fn check_password_breach(password: &str) -> Result<u32, String> {
     
     let body = response
         .text()
+        .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
     
     // Parse response to find our hash suffix

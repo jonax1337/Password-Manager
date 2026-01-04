@@ -24,7 +24,7 @@ rand = "0.8"
 thiserror = "1.0"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 sha1 = "0.10"
-reqwest = { version = "0.12", features = ["blocking"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 
 [features]
 default = ["custom-protocol"]
