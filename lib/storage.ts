@@ -70,22 +70,25 @@ export async function saveDismissedBreach(dbPath: string, entryUuid: string): Pr
   try {
     await invoke("save_dismissed_breach", { dbPath, entryUuid });
   } catch (error) {
-    console.error("Failed to save dismissed breach:", error);
-    throw new Error(`Failed to save dismissed breach: ${error}`);
+    // Log detailed error for debugging (only visible in dev console, not exposed to user)
+    console.error("[Storage] Failed to save dismissed breach", { error });
+    // Throw generic error without sensitive details
+    throw new Error("Failed to save dismissed breach");
   }
 }
 
 export async function getDismissedBreaches(dbPath: string): Promise<string[]> {
   if (!dbPath) {
-    console.warn("Database path is required to get dismissed breaches, returning empty array");
+    console.warn("[Storage] Database path missing, returning empty dismissed breaches array");
     return [];
   }
   
   try {
     return await invoke<string[]>("get_dismissed_breaches", { dbPath });
   } catch (error) {
-    console.error("Failed to get dismissed breaches:", error);
-    // Return empty array as fallback to prevent UI breakage, but log the error
+    // Log detailed error for debugging without exposing sensitive data
+    console.error("[Storage] Failed to get dismissed breaches", { error });
+    // Return empty array as fallback to prevent UI breakage
     return [];
   }
 }
@@ -101,7 +104,9 @@ export async function clearDismissedBreach(dbPath: string, entryUuid: string): P
   try {
     await invoke("clear_dismissed_breach", { dbPath, entryUuid });
   } catch (error) {
-    console.error("Failed to clear dismissed breach:", error);
-    throw new Error(`Failed to clear dismissed breach: ${error}`);
+    // Log detailed error for debugging (only visible in dev console, not exposed to user)
+    console.error("[Storage] Failed to clear dismissed breach", { error });
+    // Throw generic error without sensitive details
+    throw new Error("Failed to clear dismissed breach");
   }
 }

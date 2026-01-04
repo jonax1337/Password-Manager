@@ -495,7 +495,7 @@ pub fn save_dismissed_breach(state: State<AppState>, db_path: String, entry_uuid
     let mut dismissed_map = state.dismissed_breaches.lock()
         .map_err(|e| {
             eprintln!("save_dismissed_breach: Failed to acquire lock: {}", e);
-            format!("Failed to access dismissed breaches storage: {}", e)
+            "Failed to access storage".to_string()
         })?;
     
     dismissed_map
@@ -518,7 +518,7 @@ pub fn get_dismissed_breaches(state: State<AppState>, db_path: String) -> Result
     let dismissed_map = state.dismissed_breaches.lock()
         .map_err(|e| {
             eprintln!("get_dismissed_breaches: Failed to acquire lock: {}", e);
-            format!("Failed to access dismissed breaches storage: {}", e)
+            "Failed to access storage".to_string()
         })?;
     
     if let Some(dismissed_set) = dismissed_map.get(&db_path) {
@@ -544,7 +544,7 @@ pub fn clear_dismissed_breach(state: State<AppState>, db_path: String, entry_uui
     let mut dismissed_map = state.dismissed_breaches.lock()
         .map_err(|e| {
             eprintln!("clear_dismissed_breach: Failed to acquire lock: {}", e);
-            format!("Failed to access dismissed breaches storage: {}", e)
+            "Failed to access storage".to_string()
         })?;
     
     if let Some(dismissed_set) = dismissed_map.get_mut(&db_path) {
