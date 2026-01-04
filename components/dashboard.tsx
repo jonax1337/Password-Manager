@@ -52,7 +52,7 @@ export function Dashboard({ refreshTrigger, databasePath }: DashboardProps) {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error || "Failed to load dashboard statistics",
+        description: error?.message || "Failed to load dashboard statistics",
         variant: "destructive",
       });
     }
