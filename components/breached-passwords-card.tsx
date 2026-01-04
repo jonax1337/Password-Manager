@@ -34,7 +34,7 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
 
   useEffect(() => {
     loadBreachedPasswords();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, databasePath]);
 
   const loadBreachedPasswords = async () => {
     setIsLoading(true);
