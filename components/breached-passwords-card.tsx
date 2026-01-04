@@ -67,8 +67,11 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
 
   const handleBulkDismiss = () => {
     if (databasePath && selectedUuids.size > 0) {
-      selectedUuids.forEach(uuid => saveDismissedBreach(databasePath, uuid));
-      setDismissedUuids(prev => [...prev, ...Array.from(selectedUuids)]);
+      const uuidsToDismiss = Array.from(selectedUuids);
+      // Assumes a new function `saveDismissedBreaches` is created in "@/lib/storage"
+      // that accepts an array of UUIDs for a bulk-write operation.
+      saveDismissedBreaches(databasePath, uuidsToDismiss);
+      setDismissedUuids(prev => [...prev, ...uuidsToDismiss]);
       toast({
         title: "Dismissed",
         description: `${selectedUuids.size} breach warning${selectedUuids.size !== 1 ? 's' : ''} dismissed`,
