@@ -7,6 +7,7 @@ mod state;
 
 use state::AppState;
 use std::sync::Mutex;
+use std::collections::HashMap;
 use tauri::Manager;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton};
 use tauri::menu::{Menu, MenuItem};
@@ -20,6 +21,7 @@ fn main() {
         .manage(AppState {
             database: Mutex::new(None),
             initial_file_path: Mutex::new(None),
+            dismissed_breaches: Mutex::new(HashMap::new()),
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_initial_file_path,
@@ -46,6 +48,9 @@ fn main() {
             commands::generate_password,
             commands::get_dashboard_stats,
             commands::check_breached_passwords,
+            commands::save_dismissed_breach,
+            commands::get_dismissed_breaches,
+            commands::clear_dismissed_breach,
         ])
         .setup(|app| {
             // Set up system tray

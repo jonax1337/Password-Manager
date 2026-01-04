@@ -332,7 +332,7 @@ pub struct BreachedEntry {
 
 #[tauri::command]
 pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<BreachedEntry>, String> {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
     use rand::Rng;
     
     // Extract all entries while holding the lock, then release it
@@ -371,13 +371,23 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
     let mut prefix_cache: HashMap<String, String> = HashMap::new();
     let mut breached_entries = Vec::new();
     let mut error_count = 0;
-    let mut rng = rand::thread_rng();
+    
+    // Pre-generate random delays for each prefix to avoid holding non-Send RNG across await
+    let delays: Vec<(String, Vec<(String, String, String, String)>, u64)> = {
+        let mut rng = rand::thread_rng();
+        prefix_to_entries
+            .into_iter()
+            .map(|(prefix, entries)| {
+                let delay_ms = rng.gen_range(50..200);
+                (prefix, entries, delay_ms)
+            })
+            .collect()
+    };
     
     // Process each unique prefix
-    for (prefix, entries) in prefix_to_entries {
+    for (prefix, entries, delay_ms) in delays {
         // Add random delay between requests to prevent timing analysis (50-200ms)
-        let delay_ms = rng.gen_range(50..200);
-        tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         
         // Check if we already have this prefix cached
         let response_body = if let Some(cached) = prefix_cache.get(&prefix) {
@@ -462,4 +472,42 @@ fn parse_hibp_response(body: &str, suffix: &str) -> Option<u32> {
         }
     }
     None
+}
+
+// Tauri commands for managing dismissed breach warnings
+// Store dismissed breaches in AppState instead of client-side localStorage for better security
+
+#[tauri::command]
+pub fn save_dismissed_breach(state: State<AppState>, db_path: String, entry_uuid: String) -> Result<(), String> {
+    use std::collections::HashSet;
+    
+    let mut dismissed_map = state.dismissed_breaches.lock().unwrap();
+    dismissed_map
+        .entry(db_path)
+        .or_insert_with(HashSet::new)
+        .insert(entry_uuid);
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_dismissed_breaches(state: State<AppState>, db_path: String) -> Result<Vec<String>, String> {
+    let dismissed_map = state.dismissed_breaches.lock().unwrap();
+    
+    if let Some(dismissed_set) = dismissed_map.get(&db_path) {
+        Ok(dismissed_set.iter().cloned().collect())
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+#[tauri::command]
+pub fn clear_dismissed_breach(state: State<AppState>, db_path: String, entry_uuid: String) -> Result<(), String> {
+    let mut dismissed_map = state.dismissed_breaches.lock().unwrap();
+    
+    if let Some(dismissed_set) = dismissed_map.get_mut(&db_path) {
+        dismissed_set.remove(&entry_uuid);
+    }
+    
+    Ok(())
 }
