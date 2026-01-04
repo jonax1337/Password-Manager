@@ -7,14 +7,24 @@ use sha1::{Sha1, Digest};
 
 #[tauri::command]
 pub fn get_initial_file_path(state: State<AppState>) -> Option<String> {
-    let initial_path = state.initial_file_path.lock().unwrap();
+    let initial_path = state.initial_file_path.lock()
+        .map_err(|e| {
+            eprintln!("get_initial_file_path: Lock poisoned: {}", e);
+            e
+        })
+        .ok()?;
     initial_path.clone()
 }
 
 #[tauri::command]
-pub fn clear_initial_file_path(state: State<AppState>) {
-    let mut initial_path = state.initial_file_path.lock().unwrap();
+pub fn clear_initial_file_path(state: State<AppState>) -> Result<(), String> {
+    let mut initial_path = state.initial_file_path.lock()
+        .map_err(|e| {
+            eprintln!("clear_initial_file_path: Lock poisoned: {}", e);
+            "Failed to access state".to_string()
+        })?;
     *initial_path = None;
+    Ok(())
 }
 
 #[tauri::command]
@@ -27,7 +37,11 @@ pub fn create_database(
 
     let root_group = db.get_root_group();
 
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("create_database: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     *database_lock = Some(db);
 
     Ok(root_group)
@@ -44,7 +58,11 @@ pub fn open_database(
 
     let root_group = db.get_root_group();
 
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("open_database: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     *database_lock = Some(db);
 
     Ok((root_group, path))
@@ -52,7 +70,11 @@ pub fn open_database(
 
 #[tauri::command]
 pub fn save_database(state: State<AppState>) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("save_database: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.save().map_err(|e| e.to_string())?;
@@ -64,14 +86,22 @@ pub fn save_database(state: State<AppState>) -> Result<(), String> {
 
 #[tauri::command]
 pub fn close_database(state: State<AppState>) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("close_database: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     *database_lock = None;
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_kdf_info(state: State<AppState>) -> Result<KdfInfo, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_kdf_info: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     if let Some(db) = database_lock.as_ref() {
         Ok(db.get_kdf_info())
     } else {
@@ -81,7 +111,11 @@ pub fn get_kdf_info(state: State<AppState>) -> Result<KdfInfo, String> {
 
 #[tauri::command]
 pub fn upgrade_kdf_parameters(state: State<AppState>) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("upgrade_kdf_parameters: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     if let Some(db) = database_lock.as_mut() {
         db.upgrade_kdf_parameters().map_err(|e| e.to_string())?;
         Ok(())
@@ -92,7 +126,11 @@ pub fn upgrade_kdf_parameters(state: State<AppState>) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_groups(state: State<AppState>) -> Result<GroupData, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_groups: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_ref() {
         Ok(db.get_root_group())
@@ -103,7 +141,11 @@ pub fn get_groups(state: State<AppState>) -> Result<GroupData, String> {
 
 #[tauri::command]
 pub fn get_entries(state: State<AppState>, group_uuid: String) -> Result<Vec<EntryData>, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_entries: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     let db = database_lock
         .as_ref()
         .ok_or("Database not loaded".to_string())?;
@@ -113,7 +155,11 @@ pub fn get_entries(state: State<AppState>, group_uuid: String) -> Result<Vec<Ent
 
 #[tauri::command]
 pub fn get_favorite_entries(state: State<AppState>) -> Result<Vec<EntryData>, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_favorite_entries: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     let db = database_lock
         .as_ref()
         .ok_or("Database not loaded".to_string())?;
@@ -129,7 +175,11 @@ pub fn get_favorite_entries(state: State<AppState>) -> Result<Vec<EntryData>, St
 
 #[tauri::command]
 pub fn get_entry(state: State<AppState>, entry_uuid: String) -> Result<EntryData, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_entry: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_ref() {
         db.get_entry(&entry_uuid).map_err(|e| e.to_string())
@@ -140,7 +190,11 @@ pub fn get_entry(state: State<AppState>, entry_uuid: String) -> Result<EntryData
 
 #[tauri::command]
 pub fn create_entry(state: State<AppState>, entry: EntryData) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("create_entry: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.create_entry(entry).map_err(|e| e.to_string())?;
@@ -152,7 +206,11 @@ pub fn create_entry(state: State<AppState>, entry: EntryData) -> Result<(), Stri
 
 #[tauri::command]
 pub fn update_entry(state: State<AppState>, entry: EntryData) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("update_entry: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.update_entry(entry).map_err(|e| e.to_string())?;
@@ -164,7 +222,11 @@ pub fn update_entry(state: State<AppState>, entry: EntryData) -> Result<(), Stri
 
 #[tauri::command]
 pub fn delete_entry(state: State<AppState>, entry_uuid: String) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("delete_entry: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.delete_entry(&entry_uuid).map_err(|e| e.to_string())?;
@@ -182,7 +244,11 @@ pub fn create_group(
     parent_uuid: Option<String>,
     icon_id: Option<u32>,
 ) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("create_group: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.create_group(name, parent_uuid, icon_id)
@@ -200,7 +266,11 @@ pub fn rename_group(
     new_name: String,
     icon_id: Option<u32>,
 ) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("rename_group: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.rename_group(&group_uuid, new_name, icon_id)
@@ -217,7 +287,11 @@ pub fn move_group(
     group_uuid: String,
     new_parent_uuid: String,
 ) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("move_group: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.move_group(&group_uuid, &new_parent_uuid)
@@ -234,7 +308,11 @@ pub fn reorder_group(
     group_uuid: String,
     target_index: usize,
 ) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("reorder_group: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.reorder_group(&group_uuid, target_index)
@@ -247,7 +325,11 @@ pub fn reorder_group(
 
 #[tauri::command]
 pub fn delete_group(state: State<AppState>, group_uuid: String) -> Result<(), String> {
-    let mut database_lock = state.database.lock().unwrap();
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("delete_group: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_mut() {
         db.delete_group(&group_uuid).map_err(|e| e.to_string())?;
@@ -259,7 +341,11 @@ pub fn delete_group(state: State<AppState>, group_uuid: String) -> Result<(), St
 
 #[tauri::command]
 pub fn search_entries(state: State<AppState>, query: String) -> Result<Vec<EntryData>, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("search_entries: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
 
     if let Some(db) = database_lock.as_ref() {
         Ok(db.search_entries(&query))
@@ -313,7 +399,11 @@ pub fn generate_password(
 
 #[tauri::command]
 pub fn get_dashboard_stats(state: State<AppState>) -> Result<DashboardStats, String> {
-    let database_lock = state.database.lock().unwrap();
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_dashboard_stats: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
     
     if let Some(db) = database_lock.as_ref() {
         Ok(db.get_dashboard_stats())
@@ -337,7 +427,11 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
     
     // Extract all entries while holding the lock, then release it
     let all_entries = {
-        let database_lock = state.database.lock().unwrap();
+        let database_lock = state.database.lock()
+            .map_err(|e| {
+                eprintln!("check_breached_passwords: Lock poisoned: {}", e);
+                "Failed to access database state".to_string()
+            })?;
         
         if let Some(db) = database_lock.as_ref() {
             db.get_all_entries()
