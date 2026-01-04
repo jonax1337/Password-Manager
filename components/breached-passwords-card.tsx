@@ -263,24 +263,24 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
               </div>
             )}
 
-            {/* Table Header */}
-            <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
-              <div className="w-8 flex items-center justify-center">
-                <Checkbox
-                  checked={selectedUuids.size === filteredBreachedEntries.length && filteredBreachedEntries.length > 0}
-                  onCheckedChange={toggleSelectAll}
-                  title="Select all"
-                />
-              </div>
-              <div className="w-8"></div>
-              <div className="flex-1">Title</div>
-              <div className="flex-1">Username</div>
-              <div className="w-32">Breach Count</div>
-              <div className="w-24">Actions</div>
-            </div>
-
             {/* Entries */}
-            <ScrollArea className="max-h-[300px]">
+            <ScrollArea className="max-h-[400px]">
+              {/* Table Header */}
+              <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+                <div className="w-8 flex items-center justify-center">
+                  <Checkbox
+                    checked={selectedUuids.size === filteredBreachedEntries.length && filteredBreachedEntries.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    title="Select all"
+                  />
+                </div>
+                <div className="w-8"></div>
+                <div className="flex-1">Title</div>
+                <div className="flex-1">Username</div>
+                <div className="w-32">Breach Count</div>
+                <div className="w-24">Actions</div>
+              </div>
+
               {filteredBreachedEntries.map((entry, index) => (
                 <div
                   key={entry.uuid}

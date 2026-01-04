@@ -499,9 +499,9 @@ export function MainApp({ onClose }: MainAppProps) {
           )}
         </ResizablePanel>
 
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           {/* Keep Dashboard mounted but hidden to preserve state */}
-          <div className={isDashboardView ? "" : "hidden"}>
+          <div className={isDashboardView ? "h-full" : "hidden"}>
             <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
           </div>
           
