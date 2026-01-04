@@ -424,6 +424,37 @@ pub struct BreachedEntry {
 pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<BreachedEntry>, String> {
     use std::collections::HashMap;
     use rand::Rng;
+    use std::time::{Duration, Instant};
+    
+    // Check if HIBP is enabled (user consent)
+    let hibp_enabled = state.hibp_enabled.lock()
+        .map_err(|e| {
+            eprintln!("check_breached_passwords: Failed to check HIBP enabled state: {}", e);
+            "Failed to access settings".to_string()
+        })?;
+    
+    if !*hibp_enabled {
+        return Err("HIBP breach checking is disabled. Enable it in settings to use this feature.".to_string());
+    }
+    
+    // Rate limiting: Prevent checks more frequent than once per 5 minutes
+    let mut last_check = state.last_hibp_check.lock()
+        .map_err(|e| {
+            eprintln!("check_breached_passwords: Failed to access rate limit state: {}", e);
+            "Failed to access rate limit".to_string()
+        })?;
+    
+    if let Some(last) = *last_check {
+        let elapsed = last.elapsed();
+        if elapsed < Duration::from_secs(300) { // 5 minutes
+            let remaining = 300 - elapsed.as_secs();
+            return Err(format!("Rate limit: Please wait {} seconds before checking again", remaining));
+        }
+    }
+    
+    // Update last check time
+    *last_check = Some(Instant::now());
+    drop(last_check); // Release lock
     
     // Extract all entries while holding the lock, then release it
     let all_entries = {
@@ -566,6 +597,31 @@ fn parse_hibp_response(body: &str, suffix: &str) -> Option<u32> {
         }
     }
     None
+}
+
+// HIBP settings management commands
+
+#[tauri::command]
+pub fn set_hibp_enabled(state: State<AppState>, enabled: bool) -> Result<(), String> {
+    let mut hibp_enabled = state.hibp_enabled.lock()
+        .map_err(|e| {
+            eprintln!("set_hibp_enabled: Lock poisoned: {}", e);
+            "Failed to access settings".to_string()
+        })?;
+    
+    *hibp_enabled = enabled;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_hibp_enabled(state: State<AppState>) -> Result<bool, String> {
+    let hibp_enabled = state.hibp_enabled.lock()
+        .map_err(|e| {
+            eprintln!("get_hibp_enabled: Lock poisoned: {}", e);
+            "Failed to access settings".to_string()
+        })?;
+    
+    Ok(*hibp_enabled)
 }
 
 // Tauri commands for managing dismissed breach warnings
