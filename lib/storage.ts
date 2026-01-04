@@ -1,5 +1,6 @@
 const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
+const DISMISSED_BREACHES_PREFIX = "dismissedBreaches_";
 
 export function saveLastDatabasePath(path: string): void {
   if (typeof window !== "undefined") {
@@ -54,4 +55,60 @@ export function getColumnConfig(dbPath: string): ColumnVisibility | null {
     }
   }
   return null;
+}
+
+function getDismissedBreachesKey(dbPath: string): string {
+  return DISMISSED_BREACHES_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+}
+
+export function saveDismissedBreach(dbPath: string, entryUuid: string): void {
+  if (typeof window !== "undefined" && dbPath) {
+    const key = getDismissedBreachesKey(dbPath);
+    const stored = localStorage.getItem(key);
+    let dismissed: string[] = [];
+    
+    if (stored) {
+      try {
+        dismissed = JSON.parse(stored) as string[];
+      } catch {
+        dismissed = [];
+      }
+    }
+    
+    if (!dismissed.includes(entryUuid)) {
+      dismissed.push(entryUuid);
+      localStorage.setItem(key, JSON.stringify(dismissed));
+    }
+  }
+}
+
+export function getDismissedBreaches(dbPath: string): string[] {
+  if (typeof window !== "undefined" && dbPath) {
+    const key = getDismissedBreachesKey(dbPath);
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        return JSON.parse(stored) as string[];
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+export function clearDismissedBreach(dbPath: string, entryUuid: string): void {
+  if (typeof window !== "undefined" && dbPath) {
+    const key = getDismissedBreachesKey(dbPath);
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        let dismissed = JSON.parse(stored) as string[];
+        dismissed = dismissed.filter(uuid => uuid !== entryUuid);
+        localStorage.setItem(key, JSON.stringify(dismissed));
+      } catch {
+        // Ignore errors
+      }
+    }
+  }
 }

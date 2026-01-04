@@ -501,7 +501,7 @@ export function MainApp({ onClose }: MainAppProps) {
 
         <div className="flex-1">
           {isDashboardView ? (
-            <Dashboard refreshTrigger={refreshTrigger} />
+            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} />
           ) : (
             <EntryList
               groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}

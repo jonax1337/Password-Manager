@@ -15,14 +15,31 @@ import {
   Copy
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { BreachedPasswordsCard } from "@/components/breached-passwords-card";
+import { getEntry } from "@/lib/tauri";
+import { openEntryWindow } from "@/lib/window";
 
 interface DashboardProps {
   refreshTrigger?: number;
+  databasePath?: string;
 }
 
-export function Dashboard({ refreshTrigger }: DashboardProps) {
+export function Dashboard({ refreshTrigger, databasePath }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const { toast } = useToast();
+
+  const handleEditEntry = async (entryUuid: string) => {
+    try {
+      const entry = await getEntry(entryUuid);
+      await openEntryWindow(entry, entry.group_uuid);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error || "Failed to open entry",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     loadStats();
@@ -68,6 +85,12 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
             Overview of your password database health and statistics
           </p>
         </div>
+
+        <BreachedPasswordsCard
+          refreshTrigger={refreshTrigger}
+          databasePath={databasePath}
+          onEditEntry={handleEditEntry}
+        />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -253,48 +276,6 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Database Overview</CardTitle>
-            <CardDescription>
-              Quick statistics about your password vault
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <FolderTree className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats?.total_groups ?? "..."}</p>
-                  <p className="text-xs text-muted-foreground">Total Groups</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Key className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats?.total_entries ?? "..."}</p>
-                  <p className="text-xs text-muted-foreground">Total Entries</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Star className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats?.favorite_entries ?? "..."}</p>
-                  <p className="text-xs text-muted-foreground">Favorites</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

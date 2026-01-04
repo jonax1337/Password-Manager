@@ -3,6 +3,7 @@ use crate::state::AppState;
 use rand::Rng;
 use std::path::PathBuf;
 use tauri::State;
+use sha1::{Sha1, Digest};
 
 #[tauri::command]
 pub fn get_initial_file_path(state: State<AppState>) -> Option<String> {
@@ -319,4 +320,96 @@ pub fn get_dashboard_stats(state: State<AppState>) -> Result<DashboardStats, Str
     } else {
         Err("No database loaded".to_string())
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct BreachedEntry {
+    pub uuid: String,
+    pub title: String,
+    pub username: String,
+    pub breach_count: u32,
+}
+
+#[tauri::command]
+pub fn check_breached_passwords(state: State<AppState>) -> Result<Vec<BreachedEntry>, String> {
+    let database_lock = state.database.lock().unwrap();
+    
+    if let Some(db) = database_lock.as_ref() {
+        let all_entries = db.get_all_entries();
+        let mut breached_entries = Vec::new();
+        
+        for entry in all_entries {
+            if entry.password.is_empty() {
+                continue;
+            }
+            
+            // Check if password is breached using HIBP API
+            match check_password_breach(&entry.password) {
+                Ok(count) if count > 0 => {
+                    breached_entries.push(BreachedEntry {
+                        uuid: entry.uuid,
+                        title: entry.title,
+                        username: entry.username,
+                        breach_count: count,
+                    });
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Error checking password for {}: {}", entry.title, e);
+                }
+            }
+        }
+        
+        Ok(breached_entries)
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+fn check_password_breach(password: &str) -> Result<u32, String> {
+    // Hash the password using SHA-1
+    let mut hasher = Sha1::new();
+    hasher.update(password.as_bytes());
+    let hash = hasher.finalize();
+    let hash_hex = format!("{:X}", hash);
+    
+    // Use k-anonymity: send only first 5 characters
+    let prefix = &hash_hex[..5];
+    let suffix = &hash_hex[5..];
+    
+    // Query HIBP API
+    let url = format!("https://api.pwnedpasswords.com/range/{}", prefix);
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("Simple-Password-Manager")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    let response = client
+        .get(&url)
+        .send()
+        .map_err(|e| format!("Failed to query HIBP API: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("HIBP API returned status: {}", response.status()));
+    }
+    
+    let body = response
+        .text()
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+    
+    // Parse response to find our hash suffix
+    for line in body.lines() {
+        if let Some((hash_part, count_str)) = line.split_once(':') {
+            if hash_part == suffix {
+                return count_str
+                    .trim()
+                    .parse::<u32>()
+                    .map_err(|e| format!("Failed to parse count: {}", e));
+            }
+        }
+    }
+    
+    // Not found in breaches
+    Ok(0)
 }

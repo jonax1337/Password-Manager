@@ -45,6 +45,7 @@ fn main() {
             commands::search_entries,
             commands::generate_password,
             commands::get_dashboard_stats,
+            commands::check_breached_passwords,
         ])
         .setup(|app| {
             // Set up system tray
