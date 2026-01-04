@@ -58,7 +58,8 @@ export function getColumnConfig(dbPath: string): ColumnVisibility | null {
 }
 
 function getDismissedBreachesKey(dbPath: string): string {
-  return DISMISSED_BREACHES_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+  const utf8 = unescape(encodeURIComponent(dbPath));
+  return DISMISSED_BREACHES_PREFIX + btoa(utf8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
 }
 
 export function saveDismissedBreach(dbPath: string, entryUuid: string): void {
