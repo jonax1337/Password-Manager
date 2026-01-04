@@ -379,6 +379,7 @@ impl Database {
         
         let mut entry = Entry {
             uuid,
+            history: None,
             ..Default::default()
         };
         
@@ -442,11 +443,18 @@ impl Database {
     pub fn update_entry(&mut self, entry_data: EntryData) -> Result<(), DatabaseError> {
         let entry = self.find_entry_by_uuid_mut(&entry_data.uuid)?;
         
-        // Check if password has changed and create history entry if needed
-        let old_password = entry.get_password().unwrap_or("");
-        let password_changed = old_password != entry_data.password;
+        // Check if any field has changed
+        let title_changed = entry.get_title().unwrap_or("") != entry_data.title;
+        let username_changed = entry.get_username().unwrap_or("") != entry_data.username;
+        let password_changed = entry.get_password().unwrap_or("") != entry_data.password;
+        let url_changed = entry.get("URL").unwrap_or("") != entry_data.url;
+        let notes_changed = entry.get("Notes").unwrap_or("") != entry_data.notes;
+        let tags_changed = entry.get("Tags").unwrap_or("") != entry_data.tags;
         
-        if password_changed {
+        let any_change = title_changed || username_changed || password_changed || 
+                        url_changed || notes_changed || tags_changed;
+        
+        if any_change {
             // Clone the current entry state before updating
             let mut history_entry = entry.clone();
             // Remove history from the history entry to avoid nested history

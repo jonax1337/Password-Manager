@@ -245,6 +245,7 @@ export function EntryList({
         expires: false,
         usage_count: 0,
         custom_fields: [],
+        history: [],
       };
 
       await createEntry(newEntry);
