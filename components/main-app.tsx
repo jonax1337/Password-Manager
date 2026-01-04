@@ -248,18 +248,14 @@ export function MainApp({ onClose }: MainAppProps) {
       const groups = await getGroups();
       setRootGroup(groups);
       
-      // Load persisted state on first load
-      if (!selectedGroupUuid && dbPath) {
-        const state = loadGroupTreeState(dbPath, groups.uuid, groups);
-        setSelectedGroupUuid(state.selectedGroup || "_dashboard");
-        setInitialExpandedGroups(new Set(state.expandedGroups));
-        // Set dashboard view if that's the selected group
-        if (state.selectedGroup === "_dashboard" || !state.selectedGroup) {
-          setIsDashboardView(true);
-        }
-      } else if (!selectedGroupUuid) {
+      // Always start with dashboard on first load
+      if (!selectedGroupUuid) {
         setSelectedGroupUuid("_dashboard");
         setIsDashboardView(true);
+        if (dbPath) {
+          const state = loadGroupTreeState(dbPath, groups.uuid, groups);
+          setInitialExpandedGroups(new Set(state.expandedGroups));
+        }
       }
     } catch (error: any) {
       toast({
@@ -323,6 +319,16 @@ export function MainApp({ onClose }: MainAppProps) {
       // Reset window title before closing
       const appWindow = getCurrentWindow();
       await appWindow.setTitle("Simple Password Manager");
+      
+      // Reset state to dashboard for next open
+      setSelectedGroupUuid("");
+      setIsDashboardView(true);
+      setIsFavoritesView(false);
+      setIsSearching(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      setFavoriteEntries([]);
+      setRootGroup(null);
       
       await closeDatabase();
       onClose(isManualLogout);

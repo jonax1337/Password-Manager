@@ -22,7 +22,6 @@ interface DashboardProps {
 
 export function Dashboard({ refreshTrigger }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
 
   const loadStats = async () => {
     try {
-      setLoading(true);
       const data = await getDashboardStats();
       setStats(data);
     } catch (error: any) {
@@ -40,8 +38,6 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
         description: error || "Failed to load dashboard statistics",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -53,31 +49,15 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
     return { label: "Excellent", color: "text-green-500" };
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading dashboard...</div>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">No data available</div>
-      </div>
-    );
-  }
-
-  const strengthInfo = getStrengthLevel(stats.average_password_strength);
-  const healthScore = Math.max(
+  const strengthInfo = stats ? getStrengthLevel(stats.average_password_strength) : { label: "...", color: "text-muted-foreground" };
+  const healthScore = stats ? Math.max(
     0,
     100 - 
     (stats.weak_passwords / Math.max(stats.total_entries, 1)) * 30 -
     (stats.reused_passwords / Math.max(stats.total_entries, 1)) * 25 -
     (stats.old_passwords / Math.max(stats.total_entries, 1)) * 20 -
     (stats.expired_entries / Math.max(stats.total_entries, 1)) * 25
-  );
+  ) : 0;
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -96,9 +76,9 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
               <Key className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total_entries}</div>
+              <div className="text-2xl font-bold">{stats?.total_entries ?? "..."}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Across {stats.total_groups} groups
+                Across {stats?.total_groups ?? "..."} groups
               </p>
             </CardContent>
           </Card>
@@ -109,7 +89,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.round(healthScore)}%</div>
+              <div className="text-2xl font-bold">{stats ? Math.round(healthScore) : "..."}%</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Database security rating
               </p>
@@ -126,7 +106,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                 {strengthInfo.label}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {Math.round(stats.average_password_strength)} bits entropy
+                {stats ? Math.round(stats.average_password_strength) : "..."} bits entropy
               </p>
             </CardContent>
           </Card>
@@ -137,7 +117,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
               <Star className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.favorite_entries}</div>
+              <div className="text-2xl font-bold">{stats?.favorite_entries ?? "..."}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Marked as favorite
               </p>
@@ -159,8 +139,8 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   <span className="text-sm font-medium">Weak Passwords</span>
                 </div>
-                <span className={`text-lg font-bold ${stats.weak_passwords > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                  {stats.weak_passwords}
+                <span className={`text-lg font-bold ${stats && stats.weak_passwords > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {stats?.weak_passwords ?? "..."}
                 </span>
               </div>
 
@@ -169,8 +149,8 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <Copy className="h-4 w-4 text-orange-500" />
                   <span className="text-sm font-medium">Reused Passwords</span>
                 </div>
-                <span className={`text-lg font-bold ${stats.reused_passwords > 0 ? 'text-orange-500' : 'text-green-500'}`}>
-                  {stats.reused_passwords}
+                <span className={`text-lg font-bold ${stats && stats.reused_passwords > 0 ? 'text-orange-500' : 'text-green-500'}`}>
+                  {stats?.reused_passwords ?? "..."}
                 </span>
               </div>
 
@@ -179,8 +159,8 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <Clock className="h-4 w-4 text-yellow-500" />
                   <span className="text-sm font-medium">Old Passwords</span>
                 </div>
-                <span className={`text-lg font-bold ${stats.old_passwords > 0 ? 'text-yellow-500' : 'text-green-500'}`}>
-                  {stats.old_passwords}
+                <span className={`text-lg font-bold ${stats && stats.old_passwords > 0 ? 'text-yellow-500' : 'text-green-500'}`}>
+                  {stats?.old_passwords ?? "..."}
                 </span>
               </div>
 
@@ -189,8 +169,8 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   <span className="text-sm font-medium">Expired Entries</span>
                 </div>
-                <span className={`text-lg font-bold ${stats.expired_entries > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                  {stats.expired_entries}
+                <span className={`text-lg font-bold ${stats && stats.expired_entries > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {stats?.expired_entries ?? "..."}
                 </span>
               </div>
             </CardContent>
@@ -204,6 +184,23 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {!stats ? (
+                <div className="text-sm text-muted-foreground">Loading recommendations...</div>
+              ) : stats.weak_passwords === 0 && 
+                 stats.reused_passwords === 0 && 
+                 stats.old_passwords === 0 && 
+                 stats.expired_entries === 0 ? (
+                <div className="flex items-start gap-2 text-sm">
+                  <Shield className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-green-600">All good!</p>
+                    <p className="text-muted-foreground text-xs">
+                      No security issues detected
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
               {stats.weak_passwords > 0 && (
                 <div className="flex items-start gap-2 text-sm">
                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
@@ -251,20 +248,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   </div>
                 </div>
               )}
-
-              {stats.weak_passwords === 0 && 
-               stats.reused_passwords === 0 && 
-               stats.old_passwords === 0 && 
-               stats.expired_entries === 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <Shield className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-green-600">All good!</p>
-                    <p className="text-muted-foreground text-xs">
-                      No security issues detected
-                    </p>
-                  </div>
-                </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -284,7 +268,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <FolderTree className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.total_groups}</p>
+                  <p className="text-2xl font-bold">{stats?.total_groups ?? "..."}</p>
                   <p className="text-xs text-muted-foreground">Total Groups</p>
                 </div>
               </div>
@@ -294,7 +278,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <Key className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.total_entries}</p>
+                  <p className="text-2xl font-bold">{stats?.total_entries ?? "..."}</p>
                   <p className="text-xs text-muted-foreground">Total Entries</p>
                 </div>
               </div>
@@ -304,7 +288,7 @@ export function Dashboard({ refreshTrigger }: DashboardProps) {
                   <Star className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.favorite_entries}</p>
+                  <p className="text-2xl font-bold">{stats?.favorite_entries ?? "..."}</p>
                   <p className="text-xs text-muted-foreground">Favorites</p>
                 </div>
               </div>
