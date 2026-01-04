@@ -27,8 +27,9 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
 
   useEffect(() => {
     if (databasePath) {
-      const dismissed = getDismissedBreaches(databasePath);
-      setDismissedUuids(dismissed);
+      getDismissedBreaches(databasePath).then(dismissed => {
+        setDismissedUuids(dismissed);
+      });
     }
   }, [databasePath]);
 
@@ -53,9 +54,9 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
     }
   };
 
-  const handleDismiss = (entryUuid: string) => {
+  const handleDismiss = async (entryUuid: string) => {
     if (databasePath) {
-      saveDismissedBreach(databasePath, entryUuid);
+      await saveDismissedBreach(databasePath, entryUuid);
       setDismissedUuids(prev => [...prev, entryUuid]);
       toast({
         title: "Dismissed",
@@ -65,10 +66,12 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
     }
   };
 
-  const handleBulkDismiss = () => {
+  const handleBulkDismiss = async () => {
     if (databasePath && selectedUuids.size > 0) {
-      const uuidsToDismiss = Array.from(selectedUuids);
-      setDismissedUuids(prev => [...prev, ...uuidsToDismiss]);
+      await Promise.all(
+        Array.from(selectedUuids).map(uuid => saveDismissedBreach(databasePath, uuid))
+      );
+      setDismissedUuids(prev => [...prev, ...Array.from(selectedUuids)]);
       toast({
         title: "Dismissed",
         description: `${selectedUuids.size} breach warning${selectedUuids.size !== 1 ? 's' : ''} dismissed`,
