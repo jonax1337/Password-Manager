@@ -60,20 +60,48 @@ export function getColumnConfig(dbPath: string): ColumnVisibility | null {
 
 // Dismissed breach management using secure Tauri backend storage
 export async function saveDismissedBreach(dbPath: string, entryUuid: string): Promise<void> {
-  if (dbPath) {
+  if (!dbPath) {
+    throw new Error("Database path is required to save dismissed breach");
+  }
+  if (!entryUuid) {
+    throw new Error("Entry UUID is required to save dismissed breach");
+  }
+  
+  try {
     await invoke("save_dismissed_breach", { dbPath, entryUuid });
+  } catch (error) {
+    console.error("Failed to save dismissed breach:", error);
+    throw new Error(`Failed to save dismissed breach: ${error}`);
   }
 }
 
 export async function getDismissedBreaches(dbPath: string): Promise<string[]> {
-  if (dbPath) {
-    return await invoke<string[]>("get_dismissed_breaches", { dbPath });
+  if (!dbPath) {
+    console.warn("Database path is required to get dismissed breaches, returning empty array");
+    return [];
   }
-  return [];
+  
+  try {
+    return await invoke<string[]>("get_dismissed_breaches", { dbPath });
+  } catch (error) {
+    console.error("Failed to get dismissed breaches:", error);
+    // Return empty array as fallback to prevent UI breakage, but log the error
+    return [];
+  }
 }
 
 export async function clearDismissedBreach(dbPath: string, entryUuid: string): Promise<void> {
-  if (dbPath) {
+  if (!dbPath) {
+    throw new Error("Database path is required to clear dismissed breach");
+  }
+  if (!entryUuid) {
+    throw new Error("Entry UUID is required to clear dismissed breach");
+  }
+  
+  try {
     await invoke("clear_dismissed_breach", { dbPath, entryUuid });
+  } catch (error) {
+    console.error("Failed to clear dismissed breach:", error);
+    throw new Error(`Failed to clear dismissed breach: ${error}`);
   }
 }

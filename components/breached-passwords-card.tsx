@@ -27,9 +27,18 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
 
   useEffect(() => {
     if (databasePath) {
-      getDismissedBreaches(databasePath).then(dismissed => {
-        setDismissedUuids(dismissed);
-      });
+      getDismissedBreaches(databasePath)
+        .then(dismissed => {
+          setDismissedUuids(dismissed);
+        })
+        .catch(error => {
+          console.error("Failed to load dismissed breaches:", error);
+          toast({
+            title: "Warning",
+            description: "Could not load dismissed breach warnings",
+            variant: "destructive",
+          });
+        });
     }
   }, [databasePath]);
 
@@ -55,7 +64,16 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
   };
 
   const handleDismiss = async (entryUuid: string) => {
-    if (databasePath) {
+    if (!databasePath) {
+      toast({
+        title: "Error",
+        description: "Database path is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
       await saveDismissedBreach(databasePath, entryUuid);
       setDismissedUuids(prev => [...prev, entryUuid]);
       toast({
@@ -63,21 +81,68 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
         description: "This breach warning will no longer be shown",
         variant: "info",
       });
+    } catch (error: any) {
+      console.error("Failed to dismiss breach:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to dismiss breach warning",
+        variant: "destructive",
+      });
     }
   };
 
   const handleBulkDismiss = async () => {
-    if (databasePath && selectedUuids.size > 0) {
-      await Promise.all(
+    if (!databasePath) {
+      toast({
+        title: "Error",
+        description: "Database path is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (selectedUuids.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select entries to dismiss",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const results = await Promise.allSettled(
         Array.from(selectedUuids).map(uuid => saveDismissedBreach(databasePath, uuid))
       );
-      setDismissedUuids(prev => [...prev, ...Array.from(selectedUuids)]);
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      if (successful > 0) {
+        setDismissedUuids(prev => [...prev, ...Array.from(selectedUuids)]);
+        setSelectedUuids(new Set());
+      }
+      
+      if (failed > 0) {
+        toast({
+          title: "Partial Success",
+          description: `${successful} dismissed, ${failed} failed`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Dismissed",
+          description: `${successful} breach warning${successful !== 1 ? 's' : ''} dismissed`,
+          variant: "info",
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to bulk dismiss breaches:", error);
       toast({
-        title: "Dismissed",
-        description: `${selectedUuids.size} breach warning${selectedUuids.size !== 1 ? 's' : ''} dismissed`,
-        variant: "info",
+        title: "Error",
+        description: error?.message || "Failed to dismiss breach warnings",
+        variant: "destructive",
       });
-      setSelectedUuids(new Set());
     }
   };
 

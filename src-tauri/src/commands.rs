@@ -481,18 +481,45 @@ fn parse_hibp_response(body: &str, suffix: &str) -> Option<u32> {
 pub fn save_dismissed_breach(state: State<AppState>, db_path: String, entry_uuid: String) -> Result<(), String> {
     use std::collections::HashSet;
     
-    let mut dismissed_map = state.dismissed_breaches.lock().unwrap();
+    // Validate inputs
+    if db_path.is_empty() {
+        eprintln!("save_dismissed_breach: Empty database path provided");
+        return Err("Database path cannot be empty".to_string());
+    }
+    if entry_uuid.is_empty() {
+        eprintln!("save_dismissed_breach: Empty entry UUID provided");
+        return Err("Entry UUID cannot be empty".to_string());
+    }
+    
+    // Acquire lock with error handling
+    let mut dismissed_map = state.dismissed_breaches.lock()
+        .map_err(|e| {
+            eprintln!("save_dismissed_breach: Failed to acquire lock: {}", e);
+            format!("Failed to access dismissed breaches storage: {}", e)
+        })?;
+    
     dismissed_map
-        .entry(db_path)
+        .entry(db_path.clone())
         .or_insert_with(HashSet::new)
-        .insert(entry_uuid);
+        .insert(entry_uuid.clone());
     
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_dismissed_breaches(state: State<AppState>, db_path: String) -> Result<Vec<String>, String> {
-    let dismissed_map = state.dismissed_breaches.lock().unwrap();
+    // Validate input
+    if db_path.is_empty() {
+        eprintln!("get_dismissed_breaches: Empty database path provided");
+        return Ok(Vec::new()); // Return empty vec instead of error for graceful degradation
+    }
+    
+    // Acquire lock with error handling
+    let dismissed_map = state.dismissed_breaches.lock()
+        .map_err(|e| {
+            eprintln!("get_dismissed_breaches: Failed to acquire lock: {}", e);
+            format!("Failed to access dismissed breaches storage: {}", e)
+        })?;
     
     if let Some(dismissed_set) = dismissed_map.get(&db_path) {
         Ok(dismissed_set.iter().cloned().collect())
@@ -503,7 +530,22 @@ pub fn get_dismissed_breaches(state: State<AppState>, db_path: String) -> Result
 
 #[tauri::command]
 pub fn clear_dismissed_breach(state: State<AppState>, db_path: String, entry_uuid: String) -> Result<(), String> {
-    let mut dismissed_map = state.dismissed_breaches.lock().unwrap();
+    // Validate inputs
+    if db_path.is_empty() {
+        eprintln!("clear_dismissed_breach: Empty database path provided");
+        return Err("Database path cannot be empty".to_string());
+    }
+    if entry_uuid.is_empty() {
+        eprintln!("clear_dismissed_breach: Empty entry UUID provided");
+        return Err("Entry UUID cannot be empty".to_string());
+    }
+    
+    // Acquire lock with error handling
+    let mut dismissed_map = state.dismissed_breaches.lock()
+        .map_err(|e| {
+            eprintln!("clear_dismissed_breach: Failed to acquire lock: {}", e);
+            format!("Failed to access dismissed breaches storage: {}", e)
+        })?;
     
     if let Some(dismissed_set) = dismissed_map.get_mut(&db_path) {
         dismissed_set.remove(&entry_uuid);
