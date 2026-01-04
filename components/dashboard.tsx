@@ -78,8 +78,8 @@ export function Dashboard({ refreshTrigger, databasePath, isDirty }: DashboardPr
   ) : 0;
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-full overflow-auto">
+      <div className="space-y-4 p-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
