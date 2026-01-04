@@ -420,6 +420,9 @@ pub struct BreachedEntry {
     pub breach_count: u32,
 }
 
+// Type alias to reduce complexity for Clippy
+type PrefixDelayTuple = (String, Vec<(String, String, String, String)>, u64);
+
 #[tauri::command]
 pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<BreachedEntry>, String> {
     use std::collections::HashMap;
@@ -457,7 +460,7 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
         
         prefix_to_entries
             .entry(prefix)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((entry.uuid, entry.title, entry.username, suffix));
     }
     
@@ -467,7 +470,7 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
     let mut error_count = 0;
     
     // Pre-generate random delays for each prefix to avoid holding non-Send RNG across await
-    let delays: Vec<(String, Vec<(String, String, String, String)>, u64)> = {
+    let delays: Vec<PrefixDelayTuple> = {
         let mut rng = rand::thread_rng();
         prefix_to_entries
             .into_iter()
