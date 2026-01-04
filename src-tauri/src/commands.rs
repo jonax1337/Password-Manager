@@ -344,6 +344,7 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
     }; // Lock is dropped here
     
     let mut breached_entries = Vec::new();
+    let mut error_count = 0;
     
     for entry in all_entries {
         if entry.password.is_empty() {
@@ -360,10 +361,15 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
                 });
             }
             Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error checking password for {}: {}", entry.title, e);
+            Err(_) => {
+                // Don't log entry-specific information to avoid leaking sensitive metadata
+                error_count += 1;
             }
         }
+    }
+    
+    if error_count > 0 {
+        eprintln!("HIBP breach check: {} password(s) could not be checked due to API errors", error_count);
     }
     
     Ok(breached_entries)
