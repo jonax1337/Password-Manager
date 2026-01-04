@@ -6,6 +6,15 @@ export interface CustomField {
   protected: boolean;
 }
 
+export interface HistoryEntry {
+  timestamp: string;
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes: string;
+}
+
 export interface EntryData {
   uuid: string;
   title: string;
@@ -24,6 +33,7 @@ export interface EntryData {
   expires: boolean;
   usage_count: number;
   custom_fields: CustomField[];
+  history: HistoryEntry[];
 }
 
 export interface GroupData {

@@ -2,7 +2,7 @@ use argon2::Version as Argon2Version;
 use chrono::NaiveDateTime;
 use keepass::{
     config::{DatabaseConfig, KdfConfig},
-    db::{Entry, Group, Node, Value, Times},
+    db::{Entry, Group, Node, Value, Times, History},
     Database as KeepassDatabase, DatabaseKey,
 };
 use secrecy::{ExposeSecret, SecretString};
@@ -40,6 +40,16 @@ pub struct CustomField {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct HistoryEntry {
+    pub timestamp: String,
+    pub title: String,
+    pub username: String,
+    pub password: String,
+    pub url: String,
+    pub notes: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EntryData {
     pub uuid: String,
     pub title: String,
@@ -58,6 +68,7 @@ pub struct EntryData {
     pub expires: bool,
     pub usage_count: usize,
     pub custom_fields: Vec<CustomField>,
+    pub history: Vec<HistoryEntry>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -306,6 +317,28 @@ impl Database {
             })
             .collect();
         
+        // Extract password history
+        let history: Vec<HistoryEntry> = if let Some(hist) = &entry.history {
+            hist.get_entries().iter()
+                .map(|h| {
+                    let timestamp = h.times.get_last_modification()
+                        .map(|t| t.format("%Y-%m-%dT%H:%M:%S").to_string())
+                        .unwrap_or_else(|| "".to_string());
+                    
+                    HistoryEntry {
+                        timestamp,
+                        title: h.get_title().unwrap_or("").to_string(),
+                        username: h.get_username().unwrap_or("").to_string(),
+                        password: h.get_password().unwrap_or("").to_string(),
+                        url: h.get("URL").unwrap_or("").to_string(),
+                        notes: h.get("Notes").unwrap_or("").to_string(),
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        
         EntryData {
             uuid,
             title: entry.get_title().unwrap_or("").to_string(),
@@ -324,6 +357,7 @@ impl Database {
             expires: entry.times.expires,
             usage_count: entry.times.usage_count,
             custom_fields,
+            history,
         }
     }
 
@@ -407,6 +441,29 @@ impl Database {
 
     pub fn update_entry(&mut self, entry_data: EntryData) -> Result<(), DatabaseError> {
         let entry = self.find_entry_by_uuid_mut(&entry_data.uuid)?;
+        
+        // Check if password has changed and create history entry if needed
+        let old_password = entry.get_password().unwrap_or("");
+        let password_changed = old_password != entry_data.password;
+        
+        if password_changed {
+            // Clone the current entry state before updating
+            let mut history_entry = entry.clone();
+            // Remove history from the history entry to avoid nested history
+            history_entry.history = None;
+            // Set the history entry's modification time to the current entry's last modification time
+            if let Some(last_mod) = entry.times.get_last_modification() {
+                history_entry.times.set_last_modification(*last_mod);
+            }
+            // Add to history - initialize History if it doesn't exist
+            if let Some(ref mut hist) = entry.history {
+                hist.add_entry(history_entry);
+            } else {
+                let mut new_history = History::default();
+                new_history.add_entry(history_entry);
+                entry.history = Some(new_history);
+            }
+        }
         
         // Update modification and access timestamps
         let now = Times::now();

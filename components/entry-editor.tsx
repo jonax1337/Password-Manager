@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Save, Copy, Edit, Wand2, Check, Plus, X, Shield, Clock, Calendar } from "lucide-react";
+import { Eye, EyeOff, Save, Copy, Edit, Wand2, Check, Plus, X, Shield, Clock, Calendar, Key, UserCircle, FileText, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { updateEntry, deleteEntry, generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import type { EntryData, CustomField } from "@/lib/tauri";
+import type { EntryData, CustomField, HistoryEntry } from "@/lib/tauri";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { IconPicker } from "@/components/icon-picker";
@@ -747,6 +747,73 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
                   <span className="text-sm">{formatTimestamp(entry.modified)}</span>
                 </div>
               </div>
+
+              {entry.history && entry.history.length > 0 && (
+                <div className="space-y-3 mt-6">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-semibold">Password History</Label>
+                  </div>
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[180px]">Date</TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Password</TableHead>
+                          <TableHead className="w-[80px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {entry.history
+                          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                          .map((historyEntry, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="text-sm">
+                              {formatTimestamp(historyEntry.timestamp)}
+                            </TableCell>
+                            <TableCell className="text-sm">{historyEntry.title || "—"}</TableCell>
+                            <TableCell className="text-sm">{historyEntry.username || "—"}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {"•".repeat(Math.min(historyEntry.password.length, 12))}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    await writeText(historyEntry.password);
+                                    toast({
+                                      title: "Copied",
+                                      description: "Password copied to clipboard",
+                                    });
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to copy password",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {(!entry.history || entry.history.length === 0) && (
+                <div className="mt-6 text-center text-sm text-muted-foreground py-8">
+                  No password history available. History entries will be created when you change the password.
+                </div>
+              )}
             </div>
           </ScrollArea>
         </TabsContent>
