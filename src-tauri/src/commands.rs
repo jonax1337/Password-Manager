@@ -396,18 +396,19 @@ async fn check_password_breach(password: &str) -> Result<u32, String> {
     
     let response = client
         .get(&url)
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            let retry_after = response
-                .headers()
-                .get(reqwest::header::RETRY_AFTER)
-                .and_then(|h| h.to_str().ok())
-                .unwrap_or("unknown");
-            return Err(format!("HIBP rate limited (Retry-After: {})", retry_after));
-        }
-
-        if !response.status().is_success() {
+        .send()
         .await
         .map_err(|e| format!("Failed to query HIBP API: {}", e))?;
+    
+    // Handle rate limiting
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        let retry_after = response
+            .headers()
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("unknown");
+        return Err(format!("HIBP rate limited (Retry-After: {})", retry_after));
+    }
     
     if !response.status().is_success() {
         return Err(format!("HIBP API returned status: {}", response.status()));

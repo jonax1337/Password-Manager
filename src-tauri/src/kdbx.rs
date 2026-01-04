@@ -7,6 +7,7 @@ use keepass::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
+use sha1::{Sha1, Digest};
 use std::fs::File;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -822,7 +823,11 @@ impl Database {
             }
 
             if !entry.password.is_empty() {
-                *password_counts.entry(entry.password.clone()).or_insert(0) += 1;
+                // Hash password before using as key to avoid storing plaintext in memory
+                let mut hasher = Sha1::new();
+                hasher.update(entry.password.as_bytes());
+                let password_hash = format!("{:X}", hasher.finalize());
+                *password_counts.entry(password_hash).or_insert(0) += 1;
             }
 
             if let Some(modified_str) = &entry.modified {
