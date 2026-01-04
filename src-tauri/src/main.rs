@@ -44,6 +44,7 @@ fn main() {
             commands::delete_group,
             commands::search_entries,
             commands::generate_password,
+            commands::get_dashboard_stats,
         ])
         .setup(|app| {
             // Set up system tray

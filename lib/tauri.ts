@@ -34,6 +34,17 @@ export interface GroupData {
   icon_id?: number;
 }
 
+export interface DashboardStats {
+  total_entries: number;
+  total_groups: number;
+  weak_passwords: number;
+  reused_passwords: number;
+  old_passwords: number;
+  expired_entries: number;
+  favorite_entries: number;
+  average_password_strength: number;
+}
+
 export async function createDatabase(path: string, password: string): Promise<GroupData> {
   return invoke("create_database", { path, password });
 }
@@ -131,4 +142,8 @@ export async function generatePassword(
     useNumbers,
     useSymbols,
   });
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return await invoke<DashboardStats>("get_dashboard_stats");
 }

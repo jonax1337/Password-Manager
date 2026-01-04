@@ -19,6 +19,7 @@ import { saveDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { Dashboard } from "@/components/dashboard";
 import { openEntryWindow, openSettingsWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
@@ -42,6 +43,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [favoriteEntries, setFavoriteEntries] = useState<EntryData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isFavoritesView, setIsFavoritesView] = useState(false);
+  const [isDashboardView, setIsDashboardView] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [dbPath, setDbPath] = useState<string>("");
@@ -249,10 +251,15 @@ export function MainApp({ onClose }: MainAppProps) {
       // Load persisted state on first load
       if (!selectedGroupUuid && dbPath) {
         const state = loadGroupTreeState(dbPath, groups.uuid, groups);
-        setSelectedGroupUuid(state.selectedGroup || groups.uuid);
+        setSelectedGroupUuid(state.selectedGroup || "_dashboard");
         setInitialExpandedGroups(new Set(state.expandedGroups));
+        // Set dashboard view if that's the selected group
+        if (state.selectedGroup === "_dashboard" || !state.selectedGroup) {
+          setIsDashboardView(true);
+        }
       } else if (!selectedGroupUuid) {
-        setSelectedGroupUuid(groups.uuid);
+        setSelectedGroupUuid("_dashboard");
+        setIsDashboardView(true);
       }
     } catch (error: any) {
       toast({
@@ -267,6 +274,7 @@ export function MainApp({ onClose }: MainAppProps) {
     setSearchQuery(query);
     if (query.trim()) {
       setIsSearching(true);
+      setIsDashboardView(false);
       try {
         const results = await searchEntries(query);
         setSearchResults(results);
@@ -376,6 +384,16 @@ export function MainApp({ onClose }: MainAppProps) {
     setSearchQuery("");
     setSearchResults([]);
     
+    // Handle dashboard view
+    if (uuid === "_dashboard") {
+      setIsDashboardView(true);
+      setIsFavoritesView(false);
+      setFavoriteEntries([]);
+      return;
+    }
+    
+    setIsDashboardView(false);
+    
     // Handle favorites view
     if (uuid === "_favorites") {
       setIsFavoritesView(true);
@@ -476,22 +494,26 @@ export function MainApp({ onClose }: MainAppProps) {
         </ResizablePanel>
 
         <div className="flex-1">
-          <EntryList
-            groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
-            searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
-            selectedEntry={null}
-            onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
-            onRefresh={handleRefresh}
-            isSearching={isSearching || isFavoritesView}
-            selectedGroupName={
-              isFavoritesView 
-                ? "Favorites"
-                : rootGroup && selectedGroupUuid 
-                ? getGroupPath(rootGroup, selectedGroupUuid)
-                : undefined
-            }
-            databasePath={dbPath}
-          />
+          {isDashboardView ? (
+            <Dashboard refreshTrigger={refreshTrigger} />
+          ) : (
+            <EntryList
+              groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
+              searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
+              selectedEntry={null}
+              onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
+              onRefresh={handleRefresh}
+              isSearching={isSearching || isFavoritesView}
+              selectedGroupName={
+                isFavoritesView 
+                  ? "Favorites"
+                  : rootGroup && selectedGroupUuid 
+                  ? getGroupPath(rootGroup, selectedGroupUuid)
+                  : undefined
+              }
+              databasePath={dbPath}
+            />
+          )}
         </div>
       </div>
 

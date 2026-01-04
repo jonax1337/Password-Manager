@@ -1,4 +1,4 @@
-use crate::kdbx::{Database, EntryData, GroupData, KdfInfo};
+use crate::kdbx::{Database, EntryData, GroupData, KdfInfo, DashboardStats};
 use crate::state::AppState;
 use rand::Rng;
 use std::path::PathBuf;
@@ -308,4 +308,15 @@ pub fn generate_password(
         .collect();
 
     Ok(password)
+}
+
+#[tauri::command]
+pub fn get_dashboard_stats(state: State<AppState>) -> Result<DashboardStats, String> {
+    let database_lock = state.database.lock().unwrap();
+    
+    if let Some(db) = database_lock.as_ref() {
+        Ok(db.get_dashboard_stats())
+    } else {
+        Err("No database loaded".to_string())
+    }
 }
