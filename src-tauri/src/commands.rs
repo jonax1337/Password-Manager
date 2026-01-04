@@ -332,6 +332,9 @@ pub struct BreachedEntry {
 
 #[tauri::command]
 pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<BreachedEntry>, String> {
+    use std::collections::{HashMap, HashSet};
+    use rand::Rng;
+    
     // Extract all entries while holding the lock, then release it
     let all_entries = {
         let database_lock = state.database.lock().unwrap();
@@ -343,27 +346,66 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
         }
     }; // Lock is dropped here
     
-    let mut breached_entries = Vec::new();
-    let mut error_count = 0;
+    // Group entries by hash prefix to batch API calls and reduce metadata leakage
+    let mut prefix_to_entries: HashMap<String, Vec<(String, String, String, String)>> = HashMap::new();
     
     for entry in all_entries {
         if entry.password.is_empty() {
             continue;
         }
         
-        match check_password_breach(&entry.password).await {
-            Ok(count) if count > 0 => {
-                breached_entries.push(BreachedEntry {
-                    uuid: entry.uuid,
-                    title: entry.title,
-                    username: entry.username,
-                    breach_count: count,
-                });
+        let mut hasher = Sha1::new();
+        hasher.update(entry.password.as_bytes());
+        let hash = hasher.finalize();
+        let hash_hex = format!("{:X}", hash);
+        let prefix = hash_hex[..5].to_string();
+        let suffix = hash_hex[5..].to_string();
+        
+        prefix_to_entries
+            .entry(prefix)
+            .or_insert_with(Vec::new)
+            .push((entry.uuid, entry.title, entry.username, suffix));
+    }
+    
+    // Cache for API responses to avoid duplicate requests
+    let mut prefix_cache: HashMap<String, String> = HashMap::new();
+    let mut breached_entries = Vec::new();
+    let mut error_count = 0;
+    let mut rng = rand::thread_rng();
+    
+    // Process each unique prefix
+    for (prefix, entries) in prefix_to_entries {
+        // Add random delay between requests to prevent timing analysis (50-200ms)
+        let delay_ms = rng.gen_range(50..200);
+        tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+        
+        // Check if we already have this prefix cached
+        let response_body = if let Some(cached) = prefix_cache.get(&prefix) {
+            cached.clone()
+        } else {
+            match fetch_hibp_range(&prefix).await {
+                Ok(body) => {
+                    prefix_cache.insert(prefix.clone(), body.clone());
+                    body
+                }
+                Err(_) => {
+                    error_count += entries.len();
+                    continue;
+                }
             }
-            Ok(_) => {}
-            Err(_) => {
-                // Don't log entry-specific information to avoid leaking sensitive metadata
-                error_count += 1;
+        };
+        
+        // Check each entry against the response
+        for (uuid, title, username, suffix) in entries {
+            if let Some(count) = parse_hibp_response(&response_body, &suffix) {
+                if count > 0 {
+                    breached_entries.push(BreachedEntry {
+                        uuid,
+                        title,
+                        username,
+                        breach_count: count,
+                    });
+                }
             }
         }
     }
@@ -375,18 +417,8 @@ pub async fn check_breached_passwords(state: State<'_, AppState>) -> Result<Vec<
     Ok(breached_entries)
 }
 
-async fn check_password_breach(password: &str) -> Result<u32, String> {
-    // Hash the password using SHA-1
-    let mut hasher = Sha1::new();
-    hasher.update(password.as_bytes());
-    let hash = hasher.finalize();
-    let hash_hex = format!("{:X}", hash);
-    
-    // Use k-anonymity: send only first 5 characters
-    let prefix = &hash_hex[..5];
-    let suffix = &hash_hex[5..];
-    
-    // Query HIBP API
+// Fetch HIBP range data for a given prefix
+async fn fetch_hibp_range(prefix: &str) -> Result<String, String> {
     let url = format!("https://api.pwnedpasswords.com/range/{}", prefix);
     let client = reqwest::Client::builder()
         .user_agent("Simple-Password-Manager")
@@ -414,23 +446,20 @@ async fn check_password_breach(password: &str) -> Result<u32, String> {
         return Err(format!("HIBP API returned status: {}", response.status()));
     }
     
-    let body = response
+    response
         .text()
         .await
-        .map_err(|e| format!("Failed to read response: {}", e))?;
-    
-    // Parse response to find our hash suffix
+        .map_err(|e| format!("Failed to read response: {}", e))
+}
+
+// Parse HIBP response to find breach count for a specific hash suffix
+fn parse_hibp_response(body: &str, suffix: &str) -> Option<u32> {
     for line in body.lines() {
         if let Some((hash_part, count_str)) = line.split_once(':') {
             if hash_part == suffix {
-                return count_str
-                    .trim()
-                    .parse::<u32>()
-                    .map_err(|e| format!("Failed to parse count: {}", e));
+                return count_str.trim().parse::<u32>().ok();
             }
         }
     }
-    
-    // Not found in breaches
-    Ok(0)
+    None
 }
