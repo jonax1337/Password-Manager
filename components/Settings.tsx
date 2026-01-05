@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2, ShieldAlert } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { emit } from "@tauri-apps/api/event";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -60,9 +62,20 @@ export function Settings() {
     localStorage.setItem("closeToTray", checked.toString());
   };
 
-  const handleHibpChange = (checked: boolean) => {
+  const handleHibpChange = async (checked: boolean) => {
     setHibpEnabledState(checked);
     setHibpEnabled(checked);
+    
+    const message = checked
+      ? "To enable breach detection, the database needs to be reloaded. Do you want to reload now?"
+      : "To disable breach detection, the database needs to be reloaded. Do you want to reload now?";
+    
+    const confirmed = await ask(message, { title: "Reload Required", kind: "info" });
+    
+    if (confirmed) {
+      await emit('hibp-setting-changed', { enabled: checked });
+      await handleClose();
+    }
   };
 
   if (!mounted) {
