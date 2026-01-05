@@ -146,6 +146,14 @@ export function getSearchScope(dbPath: string): SearchScope {
     if (stored === 'folder') {
       return 'folder';
     }
+    if (stored === 'global') {
+      return 'global';
+    }
+    if (stored !== null) {
+      // Invalid value in localStorage; reset to safe default
+      // Avoid logging sensitive data such as full paths or database contents
+      console.warn("Invalid search scope value in localStorage, resetting to 'global'.");
+    }
   }
   return 'global';
 }
