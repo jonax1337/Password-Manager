@@ -7,5 +7,4 @@ mod stats;
 mod types;
 
 pub use database::Database;
-pub use error::DatabaseError;
-pub use types::{CustomField, DashboardStats, EntryData, GroupData, HistoryEntry, KdfInfo};
+pub use types::{DashboardStats, EntryData, GroupData, KdfInfo};
