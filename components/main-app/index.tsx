@@ -477,8 +477,8 @@ export function MainApp({ onClose }: MainAppProps) {
   const activeEntry = getActiveEntry();
   const activeGroup = getActiveGroup();
 
-  // Determine if folder search toggle should be shown
-  const canSearchInFolder = !isDashboardView && !isFavoritesView && selectedGroupUuid !== "";
+  // Determine if folder search toggle should be shown (available everywhere except Dashboard)
+  const canSearchInFolder = !isDashboardView && selectedGroupUuid !== "";
 
   // Handle search with current scope
   const handleSearchWithScope = (query: string) => {
@@ -545,11 +545,11 @@ export function MainApp({ onClose }: MainAppProps) {
           </ResizablePanel>
 
           <div className="flex-1 overflow-hidden">
-            <div className={isDashboardView ? "h-full" : "hidden"}>
+            <div className={isDashboardView && !isSearching ? "h-full" : "hidden"}>
               <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
             </div>
             
-            {!isDashboardView && (
+            {(!isDashboardView || isSearching) && (
               <EntryList
                 groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
                 searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
