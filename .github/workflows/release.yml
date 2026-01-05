@@ -41,7 +41,7 @@ jobs:
 
     # macOS: Install Apple certificate for code signing
     - name: Install Apple certificate
-      if: matrix.os == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+      if: ${{ matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' }}
       env:
         APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
         KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
         # Import certificate from secrets
-        echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+        echo -n "$APPLE_CERTIFICATE" | base64 --decode > $CERTIFICATE_PATH
 
         # Create temporary keychain
         security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -89,7 +89,7 @@ jobs:
 
     # macOS: Notarize the app (if credentials are available)
     - name: Notarize macOS app
-      if: matrix.os == 'macos-latest' && env.APPLE_ID != '' && env.APPLE_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+      if: ${{ matrix.os == 'macos-latest' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
       env:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
