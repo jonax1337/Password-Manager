@@ -46,6 +46,7 @@ fn main() {
             commands::group::reorder_group,
             commands::group::delete_group,
             commands::search::search_entries,
+            commands::search::search_entries_in_group,
             commands::password::generate_password,
             commands::search::get_dashboard_stats,
             commands::security::check_breached_passwords,

@@ -149,6 +149,10 @@ export async function searchEntries(query: string): Promise<EntryData[]> {
   return await invoke<EntryData[]>("search_entries", { query });
 }
 
+export async function searchEntriesInGroup(query: string, groupUuid: string): Promise<EntryData[]> {
+  return await invoke<EntryData[]>("search_entries_in_group", { query, groupUuid });
+}
+
 export async function generatePassword(
   length: number,
   useUppercase: boolean,
