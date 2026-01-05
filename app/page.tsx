@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UnlockScreen } from "@/components/unlock-screen";
-import { QuickUnlockScreen } from "@/components/quick-unlock-screen";
+import { UnlockScreen } from "@/components/UnlockScreen";
+import { QuickUnlockScreen } from "@/components/QuickUnlockScreen";
 import { MainApp } from "@/components/main-app";
 import { Toaster } from "@/components/ui/toaster";
 import { getLastDatabasePath, clearLastDatabasePath } from "@/lib/storage";

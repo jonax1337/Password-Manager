@@ -15,7 +15,7 @@ import {
   Copy
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { BreachedPasswordsCard } from "@/components/breached-passwords-card";
+import { BreachedPasswordsCard } from "@/components/BreachedPasswordsCard";
 import { getEntry } from "@/lib/tauri";
 import { openEntryWindow } from "@/lib/window";
 

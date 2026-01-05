@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Copy, RefreshCw, Check, X } from "lucide-react";
 import { generatePassword } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
-import { PasswordStrengthMeter } from "@/components/password-strength-meter";
+import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 interface PasswordGeneratorProps {
