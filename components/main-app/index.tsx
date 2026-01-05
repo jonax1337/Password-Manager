@@ -46,6 +46,22 @@ type DragData =
   | { type: 'folder' }
   | null;
 
+// Type guard to safely validate drag data
+function isDragData(data: unknown): data is DragData {
+  if (data === null) return true;
+  if (typeof data !== 'object') return false;
+  
+  const obj = data as Record<string, unknown>;
+  if (obj.type === 'entry') {
+    return obj.entry !== undefined && typeof obj.entry === 'object';
+  }
+  if (obj.type === 'folder') {
+    return true;
+  }
+  
+  return false;
+}
+
 export function MainApp({ onClose }: MainAppProps) {
   const [rootGroup, setRootGroup] = useState<GroupData | null>(null);
   const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
@@ -320,10 +336,16 @@ export function MainApp({ onClose }: MainAppProps) {
   // DnD Handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const activeData = active.data.current as DragData;
+    const data = active.data.current;
+    
+    if (!isDragData(data)) {
+      console.warn('Invalid drag data structure:', data);
+      return;
+    }
+    
     setDndActiveId(active.id as string);
-    setDndActiveType(activeData?.type || null);
-    setDndActiveData(activeData);
+    setDndActiveType(data?.type || null);
+    setDndActiveData(data);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -337,7 +359,7 @@ export function MainApp({ onClose }: MainAppProps) {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    const activeData = active.data.current as DragData;
+    const data = active.data.current;
     
     setDndActiveId(null);
     setDndOverId(null);
@@ -345,13 +367,18 @@ export function MainApp({ onClose }: MainAppProps) {
     setDndActiveData(null);
 
     if (!over || active.id === over.id) return;
+    
+    if (!isDragData(data)) {
+      console.warn('Invalid drag data structure:', data);
+      return;
+    }
 
-    const draggedType = activeData?.type;
+    const draggedType = data?.type;
     const targetId = over.id as string;
 
     // Handle Entry drop onto Folder
-    if (activeData && activeData.type === 'entry') {
-      const entry = activeData.entry;
+    if (data && data.type === 'entry') {
+      const entry = data.entry;
       const targetGroup = rootGroup ? findGroupByUuid(rootGroup, targetId) : null;
       
       if (!targetGroup) {
