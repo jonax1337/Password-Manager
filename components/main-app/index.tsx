@@ -89,7 +89,7 @@ export function MainApp({ onClose }: MainAppProps) {
     })
   );
 
-  // Custom collision detection: use pointerWithin for entries (strict), rectIntersection for folders
+  // Custom collision detection: dynamically switches between pointerWithin (strict, for entries) and rectIntersection (lenient, for folders) based on what's being dragged
   const customCollisionDetection: CollisionDetection = useCallback((args) => {
     // For entry drags, use pointerWithin - only detect when pointer is directly over target
     if (dndActiveType === 'entry') {
