@@ -7,7 +7,7 @@
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Tauri](https://img.shields.io/badge/Tauri-2.0-blue?logo=tauri)](https://tauri.app)
-  [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
+  [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
   [![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)](https://rust-lang.org)
 
 </div>
@@ -45,8 +45,8 @@ Built with privacy in mind: **100% offline, no cloud sync, no telemetry** – yo
 
 | Layer | Technologies |
 |-------|--------------|
-| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS, shadcn/ui, dnd-kit |
-| **Backend** | Tauri 2.0, Rust, keepass-rs, secrecy |
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui, dnd-kit |
+| **Backend** | Tauri 2.0, Rust, keepass, secrecy |
 | **Icons** | Lucide React + 69 KeePass built-in icons |
 
 ## Installation
@@ -62,7 +62,7 @@ Built with privacy in mind: **100% offline, no cloud sync, no telemetry** – yo
 |----------|--------------|
 | Windows | Visual Studio C++ Build Tools, WebView2 |
 | macOS | Xcode Command Line Tools |
-| Linux | webkit2gtk, build-essential ([Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites)) |
+| Linux | webkit2gtk, build-essential ([Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)) |
 
 ### Build from Source
 
@@ -117,7 +117,7 @@ Production builds are located in `src-tauri/target/release/bundle/`
 
 | Measure | Implementation |
 |---------|----------------|
-| **Encryption** | AES-256 via keepass-rs library |
+| **Encryption** | AES-256 via keepass library |
 | **Memory Safety** | Rust backend with `secrecy` crate for secret handling |
 | **Clipboard Protection** | Auto-clears copied passwords after 30 seconds |
 | **No Logging** | Sensitive data is never logged |
