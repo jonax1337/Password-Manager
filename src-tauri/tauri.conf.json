@@ -38,6 +38,8 @@
             "core:window:allow-hide",
             "core:window:allow-show",
             "core:webview:allow-create-webview-window",
+            "core:webview:allow-webview-close",
+            "core:webview:allow-get-all-webviews",
             "core:event:allow-listen",
             "core:event:allow-emit",
             "dialog:allow-open",

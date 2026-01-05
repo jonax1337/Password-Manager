@@ -6,7 +6,7 @@ import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Dashboard } from "@/components/Dashboard";
-import { openEntryWindow } from "@/lib/window";
+import { openEntryWindow, requestCloseAllChildWindows } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
@@ -52,6 +52,15 @@ export function MainApp({ onClose }: MainAppProps) {
   // Define performClose
   const performClose = useCallback(async (isManualLogout: boolean = false) => {
     try {
+      // Request all child windows to close (they will prompt for unsaved changes)
+      const allClosed = await requestCloseAllChildWindows();
+      
+      if (!allClosed) {
+        // Some windows stayed open (user cancelled due to unsaved changes)
+        // Abort the logout/close
+        return;
+      }
+      
       const appWindow = getCurrentWindow();
       await appWindow.setTitle("Simple Password Manager");
       
