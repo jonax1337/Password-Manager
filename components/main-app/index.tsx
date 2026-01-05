@@ -310,7 +310,7 @@ export function MainApp({ onClose }: MainAppProps) {
     
     if (uuid === "_favorites") {
       setIsFavoritesView(true);
-      setSearchScope("global");
+      // Don't force global scope in Favorites - let user choose
       try {
         const favorites = await getFavoriteEntries();
         setFavoriteEntries(favorites);
@@ -477,12 +477,22 @@ export function MainApp({ onClose }: MainAppProps) {
   const activeEntry = getActiveEntry();
   const activeGroup = getActiveGroup();
 
-  // Determine if folder search toggle should be shown (available everywhere except Dashboard)
-  const canSearchInFolder = !isDashboardView && selectedGroupUuid !== "";
+  // Show dropdown in Dashboard (disabled), Favorites (enabled), and folders (enabled)
+  const showSearchScopeDropdown = isDashboardView || isFavoritesView || selectedGroupUuid !== "";
+  
+  // Can actually use folder search only in real folders (not Dashboard, not Favorites)
+  const canSearchInFolder = !isDashboardView && !isFavoritesView && selectedGroupUuid !== "";
 
   // Handle search with current scope
-  const handleSearchWithScope = (query: string) => {
-    handleSearch(query, searchScope, canSearchInFolder ? selectedGroupUuid : undefined);
+  const handleSearchWithScope = async (query: string) => {
+    // In Favorites view with 'folder' scope, we need to search globally then filter to favorites
+    if (isFavoritesView && searchScope === 'folder') {
+      // Perform global search
+      await handleSearch(query, 'global', undefined);
+      // The results will be filtered in the render logic below
+    } else {
+      await handleSearch(query, searchScope, canSearchInFolder ? selectedGroupUuid : undefined);
+    }
   };
 
   // Handle search scope change and save to localStorage
@@ -514,7 +524,8 @@ export function MainApp({ onClose }: MainAppProps) {
           onLogout={handleClose}
           searchScope={searchScope}
           onSearchScopeChange={handleSearchScopeChange}
-          canSearchInFolder={canSearchInFolder}
+          showSearchScopeDropdown={showSearchScopeDropdown}
+          isSearchScopeDisabled={isDashboardView}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -552,7 +563,15 @@ export function MainApp({ onClose }: MainAppProps) {
             {(!isDashboardView || isSearching) && (
               <EntryList
                 groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
-                searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
+                searchResults={
+                  isSearching 
+                    ? (isFavoritesView && searchScope === 'folder' 
+                        ? searchResults.filter(entry => entry.is_favorite) 
+                        : searchResults)
+                    : isFavoritesView 
+                    ? favoriteEntries 
+                    : []
+                }
                 selectedEntry={null}
                 onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
                 onRefresh={handleRefresh}

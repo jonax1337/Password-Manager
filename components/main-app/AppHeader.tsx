@@ -20,7 +20,8 @@ interface AppHeaderProps {
   onLogout: () => void;
   searchScope: SearchScope;
   onSearchScopeChange: (scope: SearchScope) => void;
-  canSearchInFolder: boolean;
+  showSearchScopeDropdown: boolean;
+  isSearchScopeDisabled: boolean;
 }
 
 export function AppHeader({
@@ -31,7 +32,8 @@ export function AppHeader({
   onLogout,
   searchScope,
   onSearchScopeChange,
-  canSearchInFolder,
+  showSearchScopeDropdown,
+  isSearchScopeDisabled,
 }: AppHeaderProps) {
   return (
     <div className="flex items-center gap-4 border-b px-4 py-3">
@@ -39,19 +41,22 @@ export function AppHeader({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search entries..."
-          className={canSearchInFolder ? "w-full pl-9 pr-28" : "w-full pl-9"}
+          className={showSearchScopeDropdown ? "w-full pl-9 pr-28" : "w-full pl-9"}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
-        {canSearchInFolder && (
+        {showSearchScopeDropdown && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild disabled={isSearchScopeDisabled}>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-2 text-xs font-medium"
+                  className={`h-7 gap-1 px-2 text-xs font-medium ${
+                    isSearchScopeDisabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   aria-label="Select search scope"
+                  disabled={isSearchScopeDisabled}
                 >
                   {searchScope === "global" ? (
                     <>
