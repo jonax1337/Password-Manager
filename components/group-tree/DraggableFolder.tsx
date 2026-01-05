@@ -65,7 +65,7 @@ export function DraggableFolder({
           <ContextMenu>
             <ContextMenuTrigger asChild onContextMenu={(e: React.MouseEvent) => e.stopPropagation()}>
               <div
-                className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 ${
+                className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 select-none ${
                   isSelected ? "bg-accent font-medium" : ""
                 } ${isDropTarget ? "bg-primary/20 ring-2 ring-primary ring-inset" : ""}`}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
