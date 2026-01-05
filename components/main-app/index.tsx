@@ -207,14 +207,7 @@ export function MainApp({ onClose }: MainAppProps) {
     loadDbInfo();
   }, []);
 
-  // Load groups after dbPath is available
-  useEffect(() => {
-    if (dbPath) {
-      loadGroups();
-    }
-  }, [refreshTrigger, dbPath]);
-
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       const groups = await getGroups();
       setRootGroup(groups);
@@ -234,7 +227,16 @@ export function MainApp({ onClose }: MainAppProps) {
         variant: "destructive",
       });
     }
-  };
+  }, [dbPath, selectedGroupUuid, toast]);
+
+  // Load groups after dbPath is available
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (dbPath) {
+      loadGroups();
+    }
+  }, [refreshTrigger, dbPath, loadGroups]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleClose = async () => {
     if (isDirty) {

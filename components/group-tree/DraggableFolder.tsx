@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronDown, Plus, Trash2, Edit2 } from "lucide-react";
 import {
   ContextMenu,
@@ -9,7 +9,7 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { getIconComponent } from "@/components/IconPicker";
+import { DynamicIcon } from "@/components/IconPicker";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { DraggableFolderProps } from "./types";
 
@@ -47,7 +47,7 @@ export function DraggableFolder({
   const isExpanded = expandedGroups.has(group.uuid);
   const isSelected = group.uuid === selectedUuid;
   const hasChildren = group.children && group.children.length > 0;
-  const FolderIcon = getIconComponent(group.icon_id ?? 48);
+  const folderIconId = group.icon_id ?? 48;
   const isDropTarget = overId === group.uuid;
 
   return (
@@ -90,7 +90,7 @@ export function DraggableFolder({
                   )}
                 </Button>
 
-                <FolderIcon className="h-4 w-4 text-muted-foreground" />
+                <DynamicIcon iconId={folderIconId} className="h-4 w-4 text-muted-foreground" />
 
                 <span
                   className="flex-1 text-sm"

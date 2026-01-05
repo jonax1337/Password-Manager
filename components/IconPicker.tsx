@@ -68,3 +68,16 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 export function getIconComponent(iconId: number): LucideIcon {
   return getIconComponentById(iconId);
 }
+
+// Static component that renders an icon by ID - use this instead of getIconComponent in render
+interface DynamicIconProps {
+  iconId: number;
+  className?: string;
+}
+
+/* eslint-disable react-hooks/static-components */
+export function DynamicIcon({ iconId, className }: DynamicIconProps) {
+  const IconComponent = getIconComponentById(iconId);
+  return <IconComponent className={className} />;
+}
+/* eslint-enable react-hooks/static-components */

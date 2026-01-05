@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -9,7 +9,7 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
 import { Edit, User, Key, Trash2, ExternalLink, Star, GripVertical } from "lucide-react";
-import { getIconComponent } from "@/components/IconPicker";
+import { DynamicIcon } from "@/components/IconPicker";
 import { updateEntry } from "@/lib/tauri";
 import { useDraggable } from "@dnd-kit/core";
 import { useToast } from "@/components/ui/use-toast";
@@ -51,7 +51,6 @@ export function EntryListItem({
 }: EntryListItemProps) {
   const { toast } = useToast();
   const iconId = entry.icon_id ?? 0;
-  const EntryIcon = getIconComponent(iconId);
 
   const { attributes, listeners, setNodeRef, isDragging: isDraggingLocal } = useDraggable({
     id: `entry-${entry.uuid}`,
@@ -115,7 +114,7 @@ export function EntryListItem({
           
           {/* Icon */}
           <div className="flex items-center w-8 flex-shrink-0">
-            <EntryIcon className="h-4 w-4 text-muted-foreground" />
+            <DynamicIcon iconId={iconId} className="h-4 w-4 text-muted-foreground" />
           </div>
           
           {/* Dynamic columns */}
