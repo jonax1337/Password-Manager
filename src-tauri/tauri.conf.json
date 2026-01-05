@@ -119,6 +119,12 @@
         "componentRefs": ["FileIconRegistry"]
       }
     },
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": null,
+      "entitlements": null
+    },
     "linux": {
       "deb": {
         "desktopTemplate": "linux/simple-password-manager.desktop"

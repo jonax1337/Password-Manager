@@ -123,6 +123,15 @@ Production builds are located in `src-tauri/target/release/bundle/`
 | **No Logging** | Sensitive data is never logged |
 | **Offline Only** | Zero network calls – 100% local operation |
 
+### Code Signing
+
+For production releases, code signing is supported to prevent operating system security warnings:
+- **Windows**: Authenticode signing with code signing certificates
+- **macOS**: Developer ID signing and notarization
+- **Linux**: GPG signing for release artifacts
+
+See the [Code Signing Guide](docs/SIGNING.md) for setup instructions.
+
 ## Project Structure
 
 ```
