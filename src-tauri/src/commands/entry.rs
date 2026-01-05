@@ -98,3 +98,19 @@ pub fn delete_entry(state: State<AppState>, entry_uuid: String) -> Result<(), St
         Err("No database loaded".to_string())
     }
 }
+
+#[tauri::command]
+pub fn move_entry(state: State<AppState>, entry_uuid: String, new_group_uuid: String) -> Result<(), String> {
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("move_entry: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_mut() {
+        db.move_entry(&entry_uuid, &new_group_uuid).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -8,9 +8,10 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Edit, User, Key, Trash2, ExternalLink, Star } from "lucide-react";
-import { getIconComponent } from "@/components/IconPicker";
+import { Edit, User, Key, Trash2, ExternalLink, Star, GripVertical } from "lucide-react";
+import { DynamicIcon } from "@/components/IconPicker";
 import { updateEntry } from "@/lib/tauri";
+import { useDraggable } from "@dnd-kit/core";
 import { useToast } from "@/components/ui/use-toast";
 import type { EntryData } from "@/lib/tauri";
 import type { ColumnConfig } from "./types";
@@ -21,6 +22,7 @@ interface EntryListItemProps {
   isSelected: boolean;
   isContextMenuOpen: boolean;
   isChecked: boolean;
+  isDragging?: boolean;
   onSelect: () => void;
   onToggleCheck: () => void;
   onContextMenuChange: (open: boolean) => void;
@@ -37,6 +39,7 @@ export function EntryListItem({
   isSelected,
   isContextMenuOpen,
   isChecked,
+  isDragging: isDraggingProp,
   onSelect,
   onToggleCheck,
   onContextMenuChange,
@@ -48,7 +51,16 @@ export function EntryListItem({
 }: EntryListItemProps) {
   const { toast } = useToast();
   const iconId = entry.icon_id ?? 0;
-  const EntryIcon = getIconComponent(iconId);
+
+  const { attributes, listeners, setNodeRef, isDragging: isDraggingLocal } = useDraggable({
+    id: `entry-${entry.uuid}`,
+    data: { 
+      type: 'entry',
+      entry: entry,
+    },
+  });
+
+  const isDragging = isDraggingProp || isDraggingLocal;
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,11 +87,22 @@ export function EntryListItem({
     <ContextMenu onOpenChange={onContextMenuChange}>
       <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
         <div
-          className={`flex items-center gap-2 border-b px-4 py-2.5 hover:bg-accent cursor-pointer select-none ${
+          ref={setNodeRef}
+          className={`flex items-center gap-1 border-b px-4 py-2.5 hover:bg-accent cursor-pointer ${
             isSelected || isContextMenuOpen || isChecked ? "bg-accent" : ""
-          }`}
+          } ${isDragging ? "opacity-50 bg-accent" : ""}`}
           onDoubleClick={onSelect}
+          style={{ touchAction: 'none' }}
         >
+          {/* Drag Handle */}
+          <div
+            {...listeners}
+            {...attributes}
+            className="flex items-center justify-center w-4 flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-4 w-4" />
+          </div>
           {/* Checkbox */}
           <div className="flex items-center w-8 justify-center flex-shrink-0">
             <Checkbox
@@ -91,7 +114,7 @@ export function EntryListItem({
           
           {/* Icon */}
           <div className="flex items-center w-8 flex-shrink-0">
-            <EntryIcon className="h-4 w-4 text-muted-foreground" />
+            <DynamicIcon iconId={iconId} className="h-4 w-4 text-muted-foreground" />
           </div>
           
           {/* Dynamic columns */}

@@ -7,9 +7,11 @@ export function useEntrySelection(groupUuid: string, isSearching: boolean, entri
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
 
   // Clear selection when switching groups or search mode
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setSelectedEntries(new Set());
   }, [groupUuid, isSearching]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleSelectEntry = (uuid: string) => {
     const newSelected = new Set(selectedEntries);

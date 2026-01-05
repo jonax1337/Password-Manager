@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries } from "@/lib/tauri";
+import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
@@ -12,6 +12,22 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
 import { ResizablePanel } from "@/components/ResizablePanel";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragStartEvent,
+  DragOverEvent,
+  DragEndEvent,
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
+} from "@dnd-kit/core";
+import { getIconComponent } from "@/components/IconPicker";
+import { moveGroup } from "@/lib/tauri";
+import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
 import { AppHeader } from "./AppHeader";
 import { useAutoLock } from "./hooks/useAutoLock";
@@ -23,6 +39,30 @@ import { listen } from "@tauri-apps/api/event";
 
 interface MainAppProps {
   onClose: (isManualLogout?: boolean) => void;
+}
+
+type DragData = 
+  | { type: 'entry'; entry: EntryData }
+  | { type: 'folder' }
+  | null;
+
+// Type guard to safely validate drag data
+function isDragData(data: unknown): data is DragData {
+  if (data === null) return true;
+  if (typeof data !== 'object' || data === null) return false;
+  
+  if (!('type' in data)) return false;
+  
+  const obj = data as { type: unknown };
+  
+  if (obj.type === 'entry') {
+    return 'entry' in data && typeof (data as any).entry === 'object' && (data as any).entry !== null;
+  }
+  if (obj.type === 'folder') {
+    return true;
+  }
+  
+  return false;
 }
 
 export function MainApp({ onClose }: MainAppProps) {
@@ -37,7 +77,36 @@ export function MainApp({ onClose }: MainAppProps) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
   const [initialExpandedGroups, setInitialExpandedGroups] = useState<Set<string> | undefined>(undefined);
+  const [dndActiveId, setDndActiveId] = useState<string | null>(null);
+  const [dndOverId, setDndOverId] = useState<string | null>(null);
+  const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
+  const [dndActiveData, setDndActiveData] = useState<DragData>(null);
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
+
+  // Custom collision detection: dynamically switches between pointerWithin (strict, for entries) and rectIntersection (lenient, for folders) based on what's being dragged
+  const customCollisionDetection: CollisionDetection = useCallback((args) => {
+    // For entry drags, use pointerWithin - only detect when pointer is directly over target
+    if (dndActiveType === 'entry') {
+      return pointerWithin(args);
+    }
+    // For folder drags, use rectIntersection for easier targeting
+    return rectIntersection(args);
+  }, [dndActiveType]);
+
+  useEffect(() => {
+    if (dndActiveId) {
+      document.body.style.cursor = 'grabbing';
+    } else {
+      document.body.style.cursor = '';
+    }
+    return () => { document.body.style.cursor = ''; };
+  }, [dndActiveId]);
 
   // Define handleRefresh early so it can be used in hooks
   const handleRefresh = useCallback(() => {
@@ -138,14 +207,7 @@ export function MainApp({ onClose }: MainAppProps) {
     loadDbInfo();
   }, []);
 
-  // Load groups after dbPath is available
-  useEffect(() => {
-    if (dbPath) {
-      loadGroups();
-    }
-  }, [refreshTrigger, dbPath]);
-
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       const groups = await getGroups();
       setRootGroup(groups);
@@ -165,7 +227,16 @@ export function MainApp({ onClose }: MainAppProps) {
         variant: "destructive",
       });
     }
-  };
+  }, [dbPath, selectedGroupUuid, toast]);
+
+  // Load groups after dbPath is available
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (dbPath) {
+      loadGroups();
+    }
+  }, [refreshTrigger, dbPath, loadGroups]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleClose = async () => {
     if (isDirty) {
@@ -267,72 +338,237 @@ export function MainApp({ onClose }: MainAppProps) {
     return path ? path.join(" / ") : "";
   };
 
+  // DnD Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const data = active.data.current;
+    
+    if (!isDragData(data)) {
+      console.warn('Invalid drag data structure:', data);
+      return;
+    }
+    
+    setDndActiveId(active.id as string);
+    setDndActiveType(data?.type || null);
+    setDndActiveData(data);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      if (dndOverId !== null) setDndOverId(null);
+      return;
+    }
+    if (dndOverId !== over.id) setDndOverId(over.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const data = active.data.current;
+    
+    setDndActiveId(null);
+    setDndOverId(null);
+    setDndActiveType(null);
+    setDndActiveData(null);
+
+    if (!over || active.id === over.id) return;
+    
+    if (!isDragData(data)) {
+      console.warn('Invalid drag data structure:', data);
+      return;
+    }
+
+    const draggedType = data?.type;
+    const targetId = over.id as string;
+
+    // Handle Entry drop onto Folder
+    if (data && data.type === 'entry') {
+      const entry = data.entry;
+      const targetGroup = rootGroup ? findGroupByUuid(rootGroup, targetId) : null;
+      
+      if (!targetGroup) {
+        toast({
+          title: "Invalid Target",
+          description: "Please drop the entry onto a valid folder",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Don't move if already in the same group
+      if (entry.group_uuid === targetId) {
+        return;
+      }
+
+      try {
+        await moveEntry(entry.uuid, targetId);
+        toast({
+          title: "Success",
+          description: `Moved "${entry.title}" to "${targetGroup.name}"`,
+          variant: "success",
+        });
+        handleRefresh();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to move entry"),
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Handle Folder drop onto Folder
+    if (draggedType === 'folder' && rootGroup) {
+      const draggedId = active.id as string;
+      const draggedGroup = findGroupByUuid(rootGroup, draggedId);
+      const targetGroup = findGroupByUuid(rootGroup, targetId);
+      
+      if (!draggedGroup || !targetGroup) return;
+
+      try {
+        if (isDescendant(draggedGroup, targetGroup)) {
+          toast({
+            title: "Invalid Move",
+            description: "Cannot move a group into its own descendant",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        await moveGroup(draggedId, targetId);
+        toast({
+          title: "Success",
+          description: `Moved "${draggedGroup.name}" into "${targetGroup.name}"`,
+          variant: "success",
+        });
+        handleRefresh();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to move group"),
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Get active entry for DragOverlay
+  const getActiveEntry = (): EntryData | null => {
+    if (dndActiveData && dndActiveData.type === 'entry') {
+      return dndActiveData.entry;
+    }
+    return null;
+  };
+
+  // Get active group for DragOverlay
+  const getActiveGroup = (): GroupData | null => {
+    if (dndActiveType === 'folder' && dndActiveId && rootGroup) {
+      return findGroupByUuid(rootGroup, dndActiveId);
+    }
+    return null;
+  };
+
+  const activeEntry = getActiveEntry();
+  const activeGroup = getActiveGroup();
+
   return (
-    <div className="flex h-full w-full flex-col">
-      <AppHeader
-        searchQuery={searchQuery}
-        onSearchChange={handleSearch}
-        isDirty={isDirty}
-        onSave={handleSave}
-        onLogout={handleClose}
-      />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={customCollisionDetection}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex h-full w-full flex-col">
+        <AppHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearch}
+          isDirty={isDirty}
+          onSave={handleSave}
+          onLogout={handleClose}
+        />
 
-      <div className="flex flex-1 overflow-hidden">
-        <ResizablePanel
-          defaultWidth={256}
-          minWidth={200}
-          maxWidth={500}
-          storageKey="groupTreeWidth"
-        >
-          {rootGroup && (
-            <GroupTree
-              group={rootGroup}
-              selectedUuid={selectedGroupUuid}
-              onSelectGroup={handleGroupSelect}
-              onRefresh={handleRefresh}
-              onGroupDeleted={(deletedUuid) => {
-                if (selectedGroupUuid === deletedUuid) {
-                  handleGroupSelect(rootGroup.uuid);
+        <div className="flex flex-1 overflow-hidden">
+          <ResizablePanel
+            defaultWidth={256}
+            minWidth={200}
+            maxWidth={500}
+            storageKey="groupTreeWidth"
+          >
+            {rootGroup && (
+              <GroupTree
+                group={rootGroup}
+                selectedUuid={selectedGroupUuid}
+                onSelectGroup={handleGroupSelect}
+                onRefresh={handleRefresh}
+                onGroupDeleted={(deletedUuid) => {
+                  if (selectedGroupUuid === deletedUuid) {
+                    handleGroupSelect(rootGroup.uuid);
+                  }
+                }}
+                dbPath={dbPath}
+                initialExpandedGroups={initialExpandedGroups}
+                activeId={dndActiveId}
+                overId={dndOverId}
+                activeType={dndActiveType}
+              />
+            )}
+          </ResizablePanel>
+
+          <div className="flex-1 overflow-hidden">
+            <div className={isDashboardView ? "h-full" : "hidden"}>
+              <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+            </div>
+            
+            {!isDashboardView && (
+              <EntryList
+                groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
+                searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
+                selectedEntry={null}
+                onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
+                onRefresh={handleRefresh}
+                isSearching={isSearching || isFavoritesView}
+                selectedGroupName={
+                  isFavoritesView 
+                    ? "Favorites"
+                    : rootGroup && selectedGroupUuid 
+                    ? getGroupPath(rootGroup, selectedGroupUuid)
+                    : undefined
                 }
-              }}
-              dbPath={dbPath}
-              initialExpandedGroups={initialExpandedGroups}
-            />
-          )}
-        </ResizablePanel>
-
-        <div className="flex-1 overflow-hidden">
-          <div className={isDashboardView ? "h-full" : "hidden"}>
-            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+                databasePath={dbPath}
+              />
+            )}
           </div>
-          
-          {!isDashboardView && (
-            <EntryList
-              groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
-              searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
-              selectedEntry={null}
-              onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
-              onRefresh={handleRefresh}
-              isSearching={isSearching || isFavoritesView}
-              selectedGroupName={
-                isFavoritesView 
-                  ? "Favorites"
-                  : rootGroup && selectedGroupUuid 
-                  ? getGroupPath(rootGroup, selectedGroupUuid)
-                  : undefined
-              }
-              databasePath={dbPath}
-            />
-          )}
         </div>
+
+        <UnsavedChangesDialog
+          open={showUnsavedDialog}
+          onCancel={handleUnsavedCancel}
+          onDontSave={handleUnsavedDontSave}
+          onSave={handleUnsavedSave}
+        />
       </div>
 
-      <UnsavedChangesDialog
-        open={showUnsavedDialog}
-        onCancel={handleUnsavedCancel}
-        onDontSave={handleUnsavedDontSave}
-        onSave={handleUnsavedSave}
-      />
-    </div>
+      <DragOverlay dropAnimation={null}>
+        {activeEntry ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-accent rounded shadow-lg opacity-80 border">
+            {(() => {
+              const EntryIcon = getIconComponent(activeEntry.icon_id ?? 0);
+              return <EntryIcon className="h-4 w-4 text-muted-foreground" />;
+            })()}
+            <span className="text-sm font-medium">{activeEntry.title}</span>
+          </div>
+        ) : activeGroup ? (
+          <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/50 rounded shadow-lg opacity-60">
+            {(() => {
+              const FolderIcon = getIconComponent(activeGroup.icon_id ?? 48);
+              return <FolderIcon className="h-4 w-4 text-muted-foreground" />;
+            })()}
+            <span className="text-sm font-medium">{activeGroup.name}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

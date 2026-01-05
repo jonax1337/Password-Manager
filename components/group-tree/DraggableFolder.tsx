@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronDown, Plus, Trash2, Edit2 } from "lucide-react";
 import {
   ContextMenu,
@@ -9,7 +9,7 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { getIconComponent } from "@/components/IconPicker";
+import { DynamicIcon } from "@/components/IconPicker";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { DraggableFolderProps } from "./types";
 
@@ -19,6 +19,7 @@ export function DraggableFolder({
   selectedUuid,
   expandedGroups,
   overId,
+  activeType,
   onToggleExpand,
   onSelectGroup,
   onOpenCreateDialog,
@@ -46,7 +47,7 @@ export function DraggableFolder({
   const isExpanded = expandedGroups.has(group.uuid);
   const isSelected = group.uuid === selectedUuid;
   const hasChildren = group.children && group.children.length > 0;
-  const FolderIcon = getIconComponent(group.icon_id ?? 48);
+  const folderIconId = group.icon_id ?? 48;
   const isDropTarget = overId === group.uuid;
 
   return (
@@ -66,7 +67,7 @@ export function DraggableFolder({
               <div
                 className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 ${
                   isSelected ? "bg-accent font-medium" : ""
-                } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""}`}
+                } ${isDropTarget ? "bg-primary/20 ring-2 ring-primary ring-inset" : ""}`}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
               >
                 <Button
@@ -89,13 +90,17 @@ export function DraggableFolder({
                   )}
                 </Button>
 
-                <FolderIcon className="h-4 w-4 text-muted-foreground" />
+                <DynamicIcon iconId={folderIconId} className="h-4 w-4 text-muted-foreground" />
 
                 <span
                   className="flex-1 text-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectGroup(group.uuid);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    hasChildren && onToggleExpand(group.uuid);
                   }}
                 >
                   {group.name}
@@ -136,6 +141,7 @@ export function DraggableFolder({
           selectedUuid={selectedUuid}
           expandedGroups={expandedGroups}
           overId={overId}
+          activeType={activeType}
           onToggleExpand={onToggleExpand}
           onSelectGroup={onSelectGroup}
           onOpenCreateDialog={onOpenCreateDialog}

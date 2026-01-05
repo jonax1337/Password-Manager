@@ -33,7 +33,8 @@ export function ColumnHeader({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+        <div className="sticky top-0 z-10 flex items-center gap-1 border-b bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+          <div className="w-4"></div>
           <div className="w-8 flex items-center justify-center">
             <Checkbox
               checked={isAllSelected}

@@ -33,6 +33,8 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   const [copiedPassword, setCopiedPassword] = useState(false);
   const { toast } = useToast();
 
+  // Sync form state when entry changes (e.g., switching entries)
+  // Using entry.uuid as dependency since we only want to reset when switching to a different entry
   useEffect(() => {
     setFormData(entry);
     setHasChanges(false);
@@ -40,6 +42,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     setRepeatPassword(entry.password); // Auto-fill repeat password
     // Load icon ID from entry.icon_id field
     setIconId(entry.icon_id ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.uuid]);
 
   // Notify parent when hasChanges state changes

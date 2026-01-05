@@ -5,14 +5,27 @@ import { saveColumnConfig, getColumnConfig, type ColumnVisibility } from "@/lib/
 import { DEFAULT_COLUMNS, type ColumnConfig, type ColumnId, type SortConfig } from "../types";
 
 export function useColumnConfig(databasePath?: string) {
-  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
+  // Use lazy initialization to load columns from storage
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (databasePath) {
+      const savedConfig = getColumnConfig(databasePath);
+      if (savedConfig) {
+        return DEFAULT_COLUMNS.map(col => ({
+          ...col,
+          visible: savedConfig[col.id as keyof ColumnVisibility] ?? col.visible
+        }));
+      }
+    }
+    return DEFAULT_COLUMNS;
+  });
 
-  // Load column config from storage when database changes
+  // Reload column config when database path changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (databasePath) {
       const savedConfig = getColumnConfig(databasePath);
       if (savedConfig) {
-        setColumns(prev => prev.map(col => ({
+        setColumns(DEFAULT_COLUMNS.map(col => ({
           ...col,
           visible: savedConfig[col.id as keyof ColumnVisibility] ?? col.visible
         })));
@@ -22,6 +35,7 @@ export function useColumnConfig(databasePath?: string) {
       }
     }
   }, [databasePath]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Toggle column visibility and save to storage
   const toggleColumn = (columnId: ColumnId) => {

@@ -306,6 +306,44 @@ impl Database {
         Ok(())
     }
 
+    pub fn move_entry(&mut self, entry_uuid: &str, new_group_uuid: &str) -> Result<(), DatabaseError> {
+        // Find the current group containing the entry
+        let current_group_uuid = self.find_entry_group_uuid(entry_uuid)?;
+        
+        // If already in the target group, do nothing
+        if current_group_uuid == new_group_uuid {
+            return Ok(());
+        }
+        
+        // Verify target group exists
+        let _ = self.find_group_by_uuid(new_group_uuid)?;
+        
+        let uuid = Uuid::parse_str(entry_uuid).map_err(|_| DatabaseError::EntryNotFound)?;
+        
+        // Remove entry from current group and obtain it
+        let entry_to_move: Entry = {
+            let current_group = self.find_group_by_uuid_mut(&current_group_uuid)?;
+
+            // Find the position of the entry within the current group's children
+            let index = current_group
+                .children
+                .iter()
+                .position(|node| matches!(node, Node::Entry(e) if e.uuid == uuid))
+                .ok_or(DatabaseError::EntryNotFound)?;
+
+            // Remove the node at the found index and extract the entry
+            match current_group.children.remove(index) {
+                Node::Entry(e) => e,
+                _ => unreachable!("Non-entry node found at entry position"),
+            }
+        };
+        
+        // Add entry to new group
+        let new_group = self.find_group_by_uuid_mut(new_group_uuid)?;
+        new_group.add_child(entry_to_move);
+        Ok(())
+    }
+
     pub(super) fn find_entry_by_uuid(&self, uuid: &str) -> Result<&Entry, DatabaseError> {
         let uuid_parsed = Uuid::parse_str(uuid).map_err(|_| DatabaseError::EntryNotFound)?;
         self.find_entry_recursive(&self.db.root, &uuid_parsed)

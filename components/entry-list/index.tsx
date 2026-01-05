@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ContextMenu,
@@ -101,21 +101,7 @@ export function EntryList({
     return 0;
   });
 
-  useEffect(() => {
-    if (groupUuid && !isSearching) {
-      loadEntries();
-    }
-  }, [groupUuid, isSearching]);
-
-  useEffect(() => {
-    if (isSearching) {
-      setEntries(searchResults);
-    } else if (groupUuid) {
-      loadEntries();
-    }
-  }, [searchResults, isSearching]);
-
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     if (!groupUuid) return;
 
     try {
@@ -128,7 +114,23 @@ export function EntryList({
         variant: "destructive",
       });
     }
-  };
+  }, [groupUuid, toast]);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (groupUuid && !isSearching) {
+      loadEntries();
+    }
+  }, [groupUuid, isSearching, loadEntries]);
+
+  useEffect(() => {
+    if (isSearching) {
+      setEntries(searchResults);
+    } else if (groupUuid) {
+      loadEntries();
+    }
+  }, [searchResults, isSearching, groupUuid, loadEntries]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCreateEntry = async () => {
     if (!newEntryTitle.trim() || !groupUuid) return;

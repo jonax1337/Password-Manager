@@ -98,11 +98,11 @@ export function AdvancedTab({ formData, setFormData, setHasChanges }: AdvancedTa
                         className={selectedCustomField === index ? "bg-accent" : "cursor-pointer"}
                         onClick={() => setSelectedCustomField(index)}
                       >
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium select-text">
                           {field.protected && <Shield className="h-3 w-3 inline mr-1" />}
                           {field.name || "(unnamed)"}
                         </TableCell>
-                        <TableCell className="font-mono">
+                        <TableCell className="font-mono select-text">
                           {field.protected ? "••••••••" : field.value || "—"}
                         </TableCell>
                       </TableRow>

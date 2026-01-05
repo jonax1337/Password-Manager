@@ -55,5 +55,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    user-select: none;
+  }
+  /* Allow text selection in input fields and textareas */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .select-text {
+    user-select: text;
   }
 }
