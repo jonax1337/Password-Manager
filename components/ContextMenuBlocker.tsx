@@ -14,6 +14,12 @@ export function ContextMenuBlocker() {
       ) {
         return;
       }
+
+      // Allow Radix UI ContextMenu triggers to handle the event
+      if (target.closest("[data-radix-context-menu-trigger]")) {
+        return;
+      }
+
       e.preventDefault();
     };
 

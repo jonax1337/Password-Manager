@@ -41,6 +41,11 @@ interface MainAppProps {
   onClose: (isManualLogout?: boolean) => void;
 }
 
+type DragData = 
+  | { type: 'entry'; entry: EntryData }
+  | { type: 'folder' }
+  | null;
+
 export function MainApp({ onClose }: MainAppProps) {
   const [rootGroup, setRootGroup] = useState<GroupData | null>(null);
   const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
@@ -56,7 +61,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndActiveId, setDndActiveId] = useState<string | null>(null);
   const [dndOverId, setDndOverId] = useState<string | null>(null);
   const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
-  const [dndActiveData, setDndActiveData] = useState<any>(null);
+  const [dndActiveData, setDndActiveData] = useState<DragData>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -65,7 +70,7 @@ export function MainApp({ onClose }: MainAppProps) {
     })
   );
 
-  // Custom collision detection: use pointerWithin for entries (strict), rectIntersection for folders
+  // Custom collision detection: dynamically switches between pointerWithin (strict, for entries) and rectIntersection (lenient, for folders) based on what's being dragged
   const customCollisionDetection: CollisionDetection = useCallback((args) => {
     // For entry drags, use pointerWithin - only detect when pointer is directly over target
     if (dndActiveType === 'entry') {
@@ -315,7 +320,7 @@ export function MainApp({ onClose }: MainAppProps) {
   // DnD Handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const activeData = active.data.current;
+    const activeData = active.data.current as DragData;
     setDndActiveId(active.id as string);
     setDndActiveType(activeData?.type || null);
     setDndActiveData(activeData);
@@ -418,8 +423,8 @@ export function MainApp({ onClose }: MainAppProps) {
 
   // Get active entry for DragOverlay
   const getActiveEntry = (): EntryData | null => {
-    if (dndActiveType === 'entry' && dndActiveData?.entry) {
-      return dndActiveData.entry as EntryData;
+    if (dndActiveData?.type === 'entry') {
+      return dndActiveData.entry;
     }
     return null;
   };
@@ -513,7 +518,7 @@ export function MainApp({ onClose }: MainAppProps) {
         />
       </div>
 
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
         {activeEntry ? (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-accent rounded shadow-lg opacity-80 border">
             {(() => {
