@@ -98,6 +98,10 @@ export function DraggableFolder({
                     e.stopPropagation();
                     onSelectGroup(group.uuid);
                   }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    onToggleExpand(group.uuid);
+                  }}
                 >
                   {group.name}
                 </span>
