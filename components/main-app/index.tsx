@@ -41,6 +41,11 @@ interface MainAppProps {
   onClose: (isManualLogout?: boolean) => void;
 }
 
+type DragData = 
+  | { type: 'entry'; entry: EntryData }
+  | { type: 'folder' }
+  | null;
+
 export function MainApp({ onClose }: MainAppProps) {
   const [rootGroup, setRootGroup] = useState<GroupData | null>(null);
   const [selectedGroupUuid, setSelectedGroupUuid] = useState<string>("");
@@ -56,7 +61,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndActiveId, setDndActiveId] = useState<string | null>(null);
   const [dndOverId, setDndOverId] = useState<string | null>(null);
   const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
-  const [dndActiveData, setDndActiveData] = useState<any>(null);
+  const [dndActiveData, setDndActiveData] = useState<DragData>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -315,7 +320,7 @@ export function MainApp({ onClose }: MainAppProps) {
   // DnD Handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const activeData = active.data.current;
+    const activeData = active.data.current as DragData;
     setDndActiveId(active.id as string);
     setDndActiveType(activeData?.type || null);
     setDndActiveData(activeData);
@@ -332,7 +337,7 @@ export function MainApp({ onClose }: MainAppProps) {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    const activeData = active.data.current;
+    const activeData = active.data.current as DragData;
     
     setDndActiveId(null);
     setDndOverId(null);
@@ -345,8 +350,8 @@ export function MainApp({ onClose }: MainAppProps) {
     const targetId = over.id as string;
 
     // Handle Entry drop onto Folder
-    if (draggedType === 'entry' && activeData?.entry) {
-      const entry = activeData.entry as EntryData;
+    if (activeData && activeData.type === 'entry') {
+      const entry = activeData.entry;
       const targetGroup = rootGroup ? findGroupByUuid(rootGroup, targetId) : null;
       
       if (!targetGroup) {
@@ -418,8 +423,8 @@ export function MainApp({ onClose }: MainAppProps) {
 
   // Get active entry for DragOverlay
   const getActiveEntry = (): EntryData | null => {
-    if (dndActiveType === 'entry' && dndActiveData?.entry) {
-      return dndActiveData.entry as EntryData;
+    if (dndActiveData && dndActiveData.type === 'entry') {
+      return dndActiveData.entry;
     }
     return null;
   };
