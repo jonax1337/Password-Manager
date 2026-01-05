@@ -298,12 +298,14 @@ impl Database {
             }
         }
         
-        // Update attachments - first remove all old ones, then add new ones
-        // Get current attachment keys
-        let current_keys: Vec<String> = entry.fields.keys()
-            .filter(|k| k.starts_with("Binary."))
-            .map(|k| k.strip_prefix("Binary.").unwrap().to_string())
-            .collect();
+        // Update attachments - collect keys to remove first to avoid borrow issues
+        let current_keys: Vec<String> = {
+            let entry = self.find_entry_by_uuid(&entry_data.uuid)?;
+            entry.fields.keys()
+                .filter(|k| k.starts_with("Binary."))
+                .map(|k| k.strip_prefix("Binary.").unwrap().to_string())
+                .collect()
+        };
         
         // Remove attachments that are not in the new list
         let new_keys: Vec<String> = entry_data.attachments.iter().map(|a| a.key.clone()).collect();
@@ -317,7 +319,12 @@ impl Database {
         for attachment in entry_data.attachments {
             // Check if this key already exists
             let field_name = format!("Binary.{}", attachment.key);
-            if entry.fields.contains_key(&field_name) {
+            let key_exists = {
+                let entry = self.find_entry_by_uuid(&entry_data.uuid)?;
+                entry.fields.contains_key(&field_name)
+            };
+            
+            if key_exists {
                 // Remove old one first
                 self.delete_entry_attachment(&entry_data.uuid, &attachment.key)?;
             }

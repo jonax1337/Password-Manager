@@ -154,6 +154,7 @@ export function EntryList({
         usage_count: 0,
         custom_fields: [],
         history: [],
+        attachments: [],
       };
 
       await createEntry(newEntry);
