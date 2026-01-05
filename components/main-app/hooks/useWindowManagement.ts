@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { requestCloseAllChildWindows } from "@/lib/window";
 
 interface UseWindowManagementProps {
   dbPath: string;
@@ -45,8 +46,14 @@ export function useWindowManagement({ dbPath, isDirty, onCloseRequested }: UseWi
           // Close to tray enabled and no unsaved changes
           event.preventDefault();
           await appWindow.hide();
+        } else {
+          // Main window is closing - request all child windows to close first
+          const allClosed = await requestCloseAllChildWindows();
+          if (!allClosed) {
+            // Some windows stayed open (user cancelled due to unsaved changes)
+            event.preventDefault();
+          }
         }
-        // Otherwise let window close normally
       });
     };
 
