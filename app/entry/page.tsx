@@ -136,7 +136,7 @@ function EntryContent() {
   }
 
   return (
-    <div className="h-screen">
+    <div className="h-screen select-none">
       <EntryEditor
         entry={entry}
         onClose={handleClose}
