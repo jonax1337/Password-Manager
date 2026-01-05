@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { openDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
-import { KdfWarningDialog } from "@/components/kdf-warning-dialog";
+import { KdfWarningDialog } from "@/components/KdfWarningDialog";
 import { invoke } from "@tauri-apps/api/core";
 
 interface QuickUnlockScreenProps {
