@@ -100,7 +100,7 @@ export function DraggableFolder({
                   }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
-                    onToggleExpand(group.uuid);
+                    hasChildren && onToggleExpand(group.uuid);
                   }}
                 >
                   {group.name}
