@@ -98,8 +98,8 @@ jobs:
         # Find the DMG file in the Tauri bundle output
         DMG_DIR="src-tauri/target/release/bundle/dmg"
         if [ ! -d "$DMG_DIR" ]; then
-          echo "Warning: DMG directory not found at $DMG_DIR"
-          exit 0
+          echo "::error::DMG directory not found at $DMG_DIR. Notarization was requested (credentials provided) but no DMG was produced. Failing the build."
+          exit 1
         fi
         
         DMG_FILE=$(find "$DMG_DIR" -name "*.dmg" 2>/dev/null | head -1)
