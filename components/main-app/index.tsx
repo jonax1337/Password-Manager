@@ -49,11 +49,14 @@ type DragData =
 // Type guard to safely validate drag data
 function isDragData(data: unknown): data is DragData {
   if (data === null) return true;
-  if (typeof data !== 'object') return false;
+  if (typeof data !== 'object' || data === null) return false;
   
-  const obj = data as Record<string, unknown>;
+  if (!('type' in data)) return false;
+  
+  const obj = data as { type: unknown };
+  
   if (obj.type === 'entry') {
-    return obj.entry !== undefined && typeof obj.entry === 'object';
+    return 'entry' in data && typeof (data as any).entry === 'object' && (data as any).entry !== null;
   }
   if (obj.type === 'folder') {
     return true;
