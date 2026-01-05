@@ -18,6 +18,12 @@ pub struct HistoryEntry {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct EntryAttachment {
+    pub key: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EntryData {
     pub uuid: String,
     pub title: String,
@@ -37,6 +43,7 @@ pub struct EntryData {
     pub usage_count: usize,
     pub custom_fields: Vec<CustomField>,
     pub history: Vec<HistoryEntry>,
+    pub attachments: Vec<EntryAttachment>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

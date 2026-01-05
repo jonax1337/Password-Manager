@@ -1,4 +1,4 @@
-use crate::kdbx::EntryData;
+use crate::kdbx::{EntryData, EntryAttachment};
 use crate::state::AppState;
 use tauri::State;
 
@@ -114,3 +114,60 @@ pub fn move_entry(state: State<AppState>, entry_uuid: String, new_group_uuid: St
         Err("No database loaded".to_string())
     }
 }
+
+#[tauri::command]
+pub fn get_entry_attachments(state: State<AppState>, entry_uuid: String) -> Result<Vec<EntryAttachment>, String> {
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("get_entry_attachments: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_ref() {
+        db.get_entry_attachments(&entry_uuid).map_err(|e| e.to_string())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn add_entry_attachment(
+    state: State<AppState>,
+    entry_uuid: String,
+    key: String,
+    data: Vec<u8>,
+) -> Result<(), String> {
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("add_entry_attachment: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_mut() {
+        db.add_entry_attachment(&entry_uuid, key, data).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn delete_entry_attachment(
+    state: State<AppState>,
+    entry_uuid: String,
+    key: String,
+) -> Result<(), String> {
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("delete_entry_attachment: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_mut() {
+        db.delete_entry_attachment(&entry_uuid, &key).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+

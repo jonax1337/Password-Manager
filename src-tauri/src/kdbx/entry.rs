@@ -57,9 +57,9 @@ impl Database {
         // Standard fields to exclude from custom fields
         let standard_fields = ["Title", "UserName", "Password", "URL", "Notes", "Tags", "_Favorite"];
         
-        // Extract custom fields
+        // Extract custom fields (excluding Binary fields which are attachments)
         let custom_fields: Vec<CustomField> = entry.fields.iter()
-            .filter(|(key, _)| !standard_fields.contains(&key.as_str()))
+            .filter(|(key, _)| !standard_fields.contains(&key.as_str()) && !key.starts_with("Binary."))
             .map(|(key, value)| {
                 let (val, protected) = match value {
                     Value::Unprotected(s) => (s.clone(), false),
@@ -96,6 +96,9 @@ impl Database {
             Vec::new()
         };
         
+        // Extract attachments
+        let attachments = self.get_entry_attachments(&uuid).unwrap_or_else(|_| Vec::new());
+        
         EntryData {
             uuid,
             title: entry.get_title().unwrap_or("").to_string(),
@@ -115,6 +118,7 @@ impl Database {
             usage_count: entry.times.usage_count,
             custom_fields,
             history,
+            attachments,
         }
     }
 
@@ -194,6 +198,13 @@ impl Database {
         }
         
         group.add_child(entry);
+        
+        // Add attachments after the entry is added to the group
+        let entry_uuid_str = uuid.to_string();
+        for attachment in entry_data.attachments {
+            self.add_entry_attachment(&entry_uuid_str, attachment.key, attachment.data)?;
+        }
+        
         Ok(())
     }
 
@@ -238,8 +249,8 @@ impl Database {
         // Standard fields to keep
         let standard_fields = ["Title", "UserName", "Password", "URL", "Notes", "Tags", "_Favorite"];
         
-        // Remove old custom fields (keep only standard fields)
-        entry.fields.retain(|key, _| standard_fields.contains(&key.as_str()));
+        // Remove old custom fields (keep only standard fields and Binary fields for attachments)
+        entry.fields.retain(|key, _| standard_fields.contains(&key.as_str()) || key.starts_with("Binary."));
         
         entry.fields.insert("Title".to_string(), Value::Unprotected(entry_data.title));
         entry.fields.insert("UserName".to_string(), Value::Unprotected(entry_data.username));
@@ -285,6 +296,33 @@ impl Database {
                     }
                 }
             }
+        }
+        
+        // Update attachments - first remove all old ones, then add new ones
+        // Get current attachment keys
+        let current_keys: Vec<String> = entry.fields.keys()
+            .filter(|k| k.starts_with("Binary."))
+            .map(|k| k.strip_prefix("Binary.").unwrap().to_string())
+            .collect();
+        
+        // Remove attachments that are not in the new list
+        let new_keys: Vec<String> = entry_data.attachments.iter().map(|a| a.key.clone()).collect();
+        for key in current_keys {
+            if !new_keys.contains(&key) {
+                self.delete_entry_attachment(&entry_data.uuid, &key)?;
+            }
+        }
+        
+        // Add new attachments (this will update existing ones by key)
+        for attachment in entry_data.attachments {
+            // Check if this key already exists
+            let field_name = format!("Binary.{}", attachment.key);
+            if entry.fields.contains_key(&field_name) {
+                // Remove old one first
+                self.delete_entry_attachment(&entry_data.uuid, &attachment.key)?;
+            }
+            // Add new one
+            self.add_entry_attachment(&entry_data.uuid, attachment.key, attachment.data)?;
         }
         
         Ok(())

@@ -15,6 +15,11 @@ export interface HistoryEntry {
   notes: string;
 }
 
+export interface EntryAttachment {
+  key: string;
+  data: number[];  // Vec<u8> from Rust becomes number[] in TypeScript
+}
+
 export interface EntryData {
   uuid: string;
   title: string;
@@ -34,6 +39,7 @@ export interface EntryData {
   usage_count: number;
   custom_fields: CustomField[];
   history: HistoryEntry[];
+  attachments: EntryAttachment[];
 }
 
 export interface GroupData {
@@ -176,3 +182,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 export async function checkBreachedPasswords(): Promise<BreachedEntry[]> {
   return await invoke<BreachedEntry[]>("check_breached_passwords");
 }
+
+export async function getEntryAttachments(entryUuid: string): Promise<EntryAttachment[]> {
+  return await invoke<EntryAttachment[]>("get_entry_attachments", { entryUuid });
+}
+
+export async function addEntryAttachment(
+  entryUuid: string,
+  key: string,
+  data: number[]
+): Promise<void> {
+  return await invoke<void>("add_entry_attachment", { entryUuid, key, data });
+}
+
+export async function deleteEntryAttachment(
+  entryUuid: string,
+  key: string
+): Promise<void> {
+  return await invoke<void>("delete_entry_attachment", { entryUuid, key });
+}
+

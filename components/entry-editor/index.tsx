@@ -12,6 +12,7 @@ import { IconPicker } from "@/components/IconPicker";
 import { GeneralTab } from "./GeneralTab";
 import { AdvancedTab } from "./AdvancedTab";
 import { HistoryTab } from "./HistoryTab";
+import { AttachmentsTab } from "./AttachmentsTab";
 import { validateUrl } from "./utils/validators";
 import type { EntryData } from "@/lib/tauri";
 
@@ -223,6 +224,9 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
           <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             History
           </TabsTrigger>
+          <TabsTrigger value="attachments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Attachments
+          </TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -262,6 +266,17 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
             setRepeatPassword={setRepeatPassword}
             setHasChanges={setHasChanges}
           />
+        </TabsContent>
+
+        {/* Attachments Tab */}
+        <TabsContent value="attachments" className="flex-1 m-0 min-h-0 overflow-hidden">
+          <div className="h-full overflow-y-auto p-4">
+            <AttachmentsTab
+              attachments={formData.attachments}
+              onAttachmentsChange={(attachments) => setFormData({ ...formData, attachments })}
+              onChange={() => setHasChanges(true)}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 
