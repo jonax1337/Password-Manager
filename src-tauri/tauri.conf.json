@@ -73,7 +73,9 @@
           "permissions": [
             "core:default",
             "core:window:allow-close",
-            "core:window:allow-destroy"
+            "core:window:allow-destroy",
+            "core:event:allow-emit",
+            "dialog:allow-ask"
           ]
         }
       ]

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
+const HIBP_ENABLED_KEY = "hibpEnabled";
 
 export function saveLastDatabasePath(path: string): void {
   if (typeof window !== "undefined") {
@@ -109,4 +110,18 @@ export async function clearDismissedBreach(dbPath: string, entryUuid: string): P
     // Throw generic error without sensitive details
     throw new Error("Failed to clear dismissed breach");
   }
+}
+
+// HIBP (Have I Been Pwned) breach checking - disabled by default for privacy
+export function setHibpEnabled(enabled: boolean): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(HIBP_ENABLED_KEY, enabled.toString());
+  }
+}
+
+export function getHibpEnabled(): boolean {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem(HIBP_ENABLED_KEY) === "true";
+  }
+  return false;
 }

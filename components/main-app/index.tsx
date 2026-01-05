@@ -19,6 +19,7 @@ import { useWindowManagement } from "./hooks/useWindowManagement";
 import { useSearch } from "./hooks/useSearch";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useEntryEvents } from "./hooks/useEntryEvents";
+import { listen } from "@tauri-apps/api/event";
 
 interface MainAppProps {
   onClose: (isManualLogout?: boolean) => void;
@@ -104,6 +105,18 @@ export function MainApp({ onClose }: MainAppProps) {
 
   useKeyboardShortcuts({ onSave: handleSave });
   useEntryEvents(handleRefresh);
+
+  // Listen for HIBP setting changes from Settings window
+  useEffect(() => {
+    const unlisten = listen('hibp-setting-changed', async () => {
+      console.log('HIBP setting changed, reloading database...');
+      await performClose(false);
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, [performClose]);
 
   // Load database path on mount
   useEffect(() => {

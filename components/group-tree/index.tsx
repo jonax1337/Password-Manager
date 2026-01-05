@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Star, LayoutDashboard } from "lucide-react";
+import { Plus, Star, LayoutPanelLeft } from "lucide-react";
 import { createGroup, deleteGroup, renameGroup, moveGroup } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import type { GroupData } from "@/lib/tauri";
@@ -248,7 +248,7 @@ export function GroupTree({
                     }`}
                     onClick={() => onSelectGroup("_dashboard")}
                   >
-                    <LayoutDashboard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <LayoutPanelLeft className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="truncate text-sm font-medium">Dashboard</span>
                   </div>
 

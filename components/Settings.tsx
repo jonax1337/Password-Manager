@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2 } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2, ShieldAlert } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { emit } from "@tauri-apps/api/event";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -18,11 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getHibpEnabled, setHibpEnabled } from "@/lib/storage";
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [autoLockSeconds, setAutoLockSeconds] = useState<string>("0");
   const [closeToTray, setCloseToTray] = useState<boolean>(false);
+  const [hibpEnabled, setHibpEnabledState] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -35,6 +39,8 @@ export function Settings() {
     // Load close to tray setting
     const closeToTraySaved = localStorage.getItem("closeToTray");
     setCloseToTray(closeToTraySaved === "true");
+    // Load HIBP setting
+    setHibpEnabledState(getHibpEnabled());
   }, []);
 
   const handleClose = async () => {
@@ -56,6 +62,22 @@ export function Settings() {
     localStorage.setItem("closeToTray", checked.toString());
   };
 
+  const handleHibpChange = async (checked: boolean) => {
+    setHibpEnabledState(checked);
+    setHibpEnabled(checked);
+    
+    const message = checked
+      ? "To enable breach detection, the database needs to be reloaded. Do you want to reload now?"
+      : "To disable breach detection, the database needs to be reloaded. Do you want to reload now?";
+    
+    const confirmed = await ask(message, { title: "Reload Required", kind: "info" });
+    
+    if (confirmed) {
+      await emit('hibp-setting-changed', { enabled: checked });
+      await handleClose();
+    }
+  };
+
   if (!mounted) {
     return null;
   }
@@ -63,7 +85,7 @@ export function Settings() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
+      <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <div className="h-10 w-10 flex items-center justify-center rounded-md bg-primary/10">
           <SettingsIcon className="h-5 w-5 text-primary" />
         </div>
@@ -73,8 +95,8 @@ export function Settings() {
         </div>
       </div>
 
-      <Tabs defaultValue="appearance" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+      <Tabs defaultValue="appearance" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TabsList className="flex-shrink-0 w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
           <TabsTrigger value="appearance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             Appearance
           </TabsTrigger>
@@ -87,7 +109,7 @@ export function Settings() {
         </TabsList>
 
         {/* Appearance Tab */}
-        <TabsContent value="appearance" className="flex-1 m-0">
+        <TabsContent value="appearance" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -147,7 +169,7 @@ export function Settings() {
         </TabsContent>
 
         {/* Security Tab */}
-        <TabsContent value="security" className="flex-1 m-0">
+        <TabsContent value="security" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -175,12 +197,40 @@ export function Settings() {
                   </p>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Breach Detection</CardTitle>
+                  </div>
+                  <CardDescription>Check passwords against known data breaches</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="hibp-check" className="text-sm">Enable HIBP check</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Check passwords against Have I Been Pwned database
+                      </p>
+                    </div>
+                    <Switch
+                      id="hibp-check"
+                      checked={hibpEnabled}
+                      onCheckedChange={handleHibpChange}
+                    />
+                  </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-3">
+                    This feature sends partial password hashes over the internet to check for breaches. Only the first 5 characters of the SHA-1 hash are sent (k-anonymity).
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </ScrollArea>
         </TabsContent>
 
         {/* Application Tab */}
-        <TabsContent value="application" className="flex-1 m-0">
+        <TabsContent value="application" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -213,7 +263,7 @@ export function Settings() {
       </Tabs>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
         <Button variant="outline" onClick={handleClose}>
           Close
         </Button>

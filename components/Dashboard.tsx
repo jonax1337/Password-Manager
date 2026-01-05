@@ -17,6 +17,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { BreachedPasswordsCard } from "@/components/BreachedPasswordsCard";
 import { getEntry } from "@/lib/tauri";
+import { getHibpEnabled } from "@/lib/storage";
 import { openEntryWindow } from "@/lib/window";
 
 interface DashboardProps {
@@ -27,7 +28,12 @@ interface DashboardProps {
 
 export function Dashboard({ refreshTrigger, databasePath, isDirty }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [hibpEnabled, setHibpEnabled] = useState<boolean>(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setHibpEnabled(getHibpEnabled());
+  }, []);
 
   const handleEditEntry = async (entryUuid: string) => {
     try {
@@ -87,12 +93,14 @@ export function Dashboard({ refreshTrigger, databasePath, isDirty }: DashboardPr
           </p>
         </div>
 
-        <BreachedPasswordsCard
-          refreshTrigger={refreshTrigger}
-          databasePath={databasePath}
-          onEditEntry={handleEditEntry}
-          isDirty={isDirty}
-        />
+        {hibpEnabled && (
+          <BreachedPasswordsCard
+            refreshTrigger={refreshTrigger}
+            databasePath={databasePath}
+            onEditEntry={handleEditEntry}
+            isDirty={isDirty}
+          />
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

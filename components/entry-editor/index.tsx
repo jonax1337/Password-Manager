@@ -201,7 +201,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
+      <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <IconPicker value={iconId} onChange={handleIconChange} />
         <div>
           <h1 className="text-lg font-semibold">Edit Entry</h1>
@@ -209,8 +209,8 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </div>
       </div>
 
-      <Tabs defaultValue="general" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+      <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TabsList className="flex-shrink-0 w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
           <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             General
           </TabsTrigger>
@@ -223,7 +223,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </TabsList>
 
         {/* General Tab */}
-        <TabsContent value="general" className="flex-1 m-0">
+        <TabsContent value="general" className="flex-1 m-0 min-h-0 overflow-hidden">
           <GeneralTab
             formData={formData}
             repeatPassword={repeatPassword}
@@ -242,7 +242,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </TabsContent>
 
         {/* Advanced Tab */}
-        <TabsContent value="advanced" className="flex-1 m-0">
+        <TabsContent value="advanced" className="flex-1 m-0 min-h-0 overflow-hidden">
           <AdvancedTab
             formData={formData}
             setFormData={setFormData}
@@ -251,7 +251,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
         </TabsContent>
 
         {/* History Tab */}
-        <TabsContent value="history" className="flex-1 m-0">
+        <TabsContent value="history" className="flex-1 m-0 min-h-0 overflow-hidden">
           <HistoryTab
             entry={entry}
             formData={formData}
@@ -263,7 +263,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       </Tabs>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
         <Button 
           variant="outline" 
           onClick={onClose}
