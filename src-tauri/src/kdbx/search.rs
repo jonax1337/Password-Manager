@@ -1,6 +1,5 @@
 use super::database::Database;
 use super::types::EntryData;
-use keepass::db::{Group, Node};
 
 impl Database {
     pub fn search_entries(&self, query: &str) -> Vec<EntryData> {
