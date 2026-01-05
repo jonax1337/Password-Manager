@@ -40,7 +40,11 @@ Microsoft offers [Azure Trusted Signing](https://azure.microsoft.com/en-us/produ
 1. Export your certificate as a `.pfx` file
 2. Base64 encode the certificate:
    ```bash
-   base64 -i certificate.pfx -o certificate.txt
+   # macOS/Linux
+   base64 certificate.pfx > certificate.txt
+   
+   # Windows PowerShell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("certificate.pfx")) | Out-File certificate.txt
    ```
 3. Add the following secrets to your GitHub repository:
    - `TAURI_SIGNING_PRIVATE_KEY`: The base64-encoded certificate content
@@ -102,7 +106,11 @@ Add the following secrets to your GitHub repository:
 
 To base64 encode your certificate:
 ```bash
-base64 -i certificate.p12 -o certificate.txt
+# macOS/Linux
+base64 certificate.p12 > certificate.txt
+
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("certificate.p12")) | Out-File certificate.txt
 ```
 
 ### Linux

@@ -41,7 +41,7 @@ jobs:
 
     # macOS: Install Apple certificate for code signing
     - name: Install Apple certificate
-      if: ${{ matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != '' }}
+      if: matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
       env:
         APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -89,14 +89,20 @@ jobs:
 
     # macOS: Notarize the app (if credentials are available)
     - name: Notarize macOS app
-      if: ${{ matrix.os == 'macos-latest' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+      if: matrix.os == 'macos-latest' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != ''
       env:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        # Find the DMG file
-        DMG_FILE=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -1)
+        # Find the DMG file in the Tauri bundle output
+        DMG_DIR="src-tauri/target/release/bundle/dmg"
+        if [ ! -d "$DMG_DIR" ]; then
+          echo "Warning: DMG directory not found at $DMG_DIR"
+          exit 0
+        fi
+        
+        DMG_FILE=$(find "$DMG_DIR" -name "*.dmg" 2>/dev/null | head -1)
         
         if [ -n "$DMG_FILE" ]; then
           echo "Notarizing $DMG_FILE..."
@@ -113,7 +119,7 @@ jobs:
           
           echo "Notarization complete for $DMG_FILE"
         else
-          echo "No DMG file found to notarize"
+          echo "No DMG file found to notarize in $DMG_DIR"
         fi
 
     # macOS: Clean up keychain
