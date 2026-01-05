@@ -37,8 +37,28 @@ export function AttachmentsTab({ attachments, onAttachmentsChange, onChange }: A
       // Read file content
       const content = await readFile(selected);
       
-      // Extract filename from path
-      const filename = selected.split(/[/\\]/).pop() || "attachment";
+      // Check file size limit (50MB)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+      if (content.length > MAX_FILE_SIZE) {
+        toast({
+          title: "File too large",
+          description: "File size exceeds 50MB limit. Please select a smaller file.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+      
+      // Extract and sanitize filename from path
+      let filename = selected.split(/[/\\]/).pop() || "attachment";
+      
+      // Remove invalid characters from filename (keep alphanumeric, dash, underscore, and extension dot)
+      filename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+      
+      // Ensure filename is not empty after sanitization
+      if (!filename || filename === '_') {
+        filename = 'attachment_' + Date.now();
+      }
       
       // Check if filename already exists
       const existingIndex = attachments.findIndex(a => a.key === filename);
@@ -126,9 +146,10 @@ export function AttachmentsTab({ attachments, onAttachmentsChange, onChange }: A
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+    const index = Math.min(i, sizes.length - 1);
+    return Math.round((bytes / Math.pow(k, index)) * 100) / 100 + " " + sizes[index];
   };
 
   return (

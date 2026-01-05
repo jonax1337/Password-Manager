@@ -1,5 +1,4 @@
-use keepass::{Database as KeepassDatabase, db::{Entry, Value, HeaderAttachment}};
-use std::collections::HashMap;
+use keepass::db::{Value, HeaderAttachment};
 
 use super::database::Database;
 use super::error::DatabaseError;
@@ -44,16 +43,20 @@ impl Database {
         key: String,
         data: Vec<u8>,
     ) -> Result<(), DatabaseError> {
-        let entry = self.find_entry_by_uuid_mut(entry_uuid)?;
+        // Validate key doesn't contain invalid characters
+        if key.contains('.') || key.is_empty() {
+            return Err(DatabaseError::InvalidUuid); // Using existing error type
+        }
         
-        // Add to header_attachments
+        // Add to header_attachments first
         let attachment_idx = self.db.header_attachments.len();
         self.db.header_attachments.push(HeaderAttachment {
-            flags: 1, // 1 = compressed
+            flags: 1, // 1 = compressed (data will be compressed by keepass library)
             content: data,
         });
         
-        // Add reference to entry
+        // Now get entry and add reference
+        let entry = self.find_entry_by_uuid_mut(entry_uuid)?;
         let field_name = format!("Binary.{}", key);
         entry.fields.insert(field_name, Value::Unprotected(attachment_idx.to_string()));
         
