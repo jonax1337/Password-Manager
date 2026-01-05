@@ -152,7 +152,7 @@ export function AttachmentsTab({ attachments, onAttachmentsChange, onChange }: A
             <FileIcon className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No attachments</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Click "Add File" to attach a file to this entry
+              Click &quot;Add File&quot; to attach a file to this entry
             </p>
           </CardContent>
         </Card>
