@@ -42,7 +42,13 @@ export async function requestCloseAllChildWindows(): Promise<boolean> {
         await win.close();
         console.log(`Requested close for child window: ${win.label}`);
       } catch (error) {
-        console.error(`Failed to request close for window ${win.label}:`, error);
+        // Ignore "window not found" errors - the window was already closed
+        const errorMessage = typeof error === 'string' ? error : (error as Error)?.message || '';
+        if (errorMessage.includes('window not found')) {
+          console.log(`Window ${win.label} was already closed`);
+        } else {
+          console.error(`Failed to request close for window ${win.label}:`, error);
+        }
       }
     }
     
