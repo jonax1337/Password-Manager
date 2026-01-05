@@ -83,7 +83,7 @@ export function Settings() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background select-none">
+    <div className="flex h-screen flex-col bg-background">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <div className="h-10 w-10 flex items-center justify-center rounded-md bg-primary/10">

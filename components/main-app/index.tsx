@@ -443,7 +443,7 @@ export function MainApp({ onClose }: MainAppProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full w-full flex-col select-none">
+      <div className="flex h-full w-full flex-col">
         <AppHeader
           searchQuery={searchQuery}
           onSearchChange={handleSearch}
