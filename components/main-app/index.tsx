@@ -21,7 +21,9 @@ import {
   DragStartEvent,
   DragOverEvent,
   DragEndEvent,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
 } from "@dnd-kit/core";
 import { getIconComponent } from "@/components/IconPicker";
 import { moveGroup } from "@/lib/tauri";
@@ -62,6 +64,16 @@ export function MainApp({ onClose }: MainAppProps) {
       activationConstraint: { distance: 8 },
     })
   );
+
+  // Custom collision detection: use pointerWithin for entries (strict), rectIntersection for folders
+  const customCollisionDetection: CollisionDetection = useCallback((args) => {
+    // For entry drags, use pointerWithin - only detect when pointer is directly over target
+    if (dndActiveType === 'entry') {
+      return pointerWithin(args);
+    }
+    // For folder drags, use rectIntersection for easier targeting
+    return rectIntersection(args);
+  }, [dndActiveType]);
 
   useEffect(() => {
     if (dndActiveId) {
@@ -426,7 +438,7 @@ export function MainApp({ onClose }: MainAppProps) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
