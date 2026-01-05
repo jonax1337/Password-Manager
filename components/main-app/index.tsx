@@ -302,7 +302,7 @@ export function MainApp({ onClose }: MainAppProps) {
       setIsDashboardView(true);
       setIsFavoritesView(false);
       setFavoriteEntries([]);
-      setSearchScope("global");
+      // Don't reset search scope - preserve user's preference
       return;
     }
     
@@ -482,6 +482,9 @@ export function MainApp({ onClose }: MainAppProps) {
   
   // Can actually use folder search only in real folders (not Dashboard, not Favorites)
   const canSearchInFolder = !isDashboardView && !isFavoritesView && selectedGroupUuid !== "";
+  
+  // Effective search scope for display: Dashboard always shows 'global', others show actual preference
+  const effectiveSearchScope = isDashboardView ? "global" : searchScope;
 
   // Handle search with current scope
   const handleSearchWithScope = async (query: string) => {
@@ -522,7 +525,7 @@ export function MainApp({ onClose }: MainAppProps) {
           isDirty={isDirty}
           onSave={handleSave}
           onLogout={handleClose}
-          searchScope={searchScope}
+          searchScope={effectiveSearchScope}
           onSearchScopeChange={handleSearchScopeChange}
           showSearchScopeDropdown={showSearchScopeDropdown}
           isSearchScopeDisabled={isDashboardView}
