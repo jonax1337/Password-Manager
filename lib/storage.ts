@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
 const HIBP_ENABLED_KEY = "hibpEnabled";
+const SEARCH_SCOPE_PREFIX = "searchScope_";
 
 export function saveLastDatabasePath(path: string): void {
   if (typeof window !== "undefined") {
@@ -124,4 +125,27 @@ export function getHibpEnabled(): boolean {
     return localStorage.getItem(HIBP_ENABLED_KEY) === "true";
   }
   return false;
+}
+
+// Search scope management (global or folder-specific)
+export type SearchScope = 'global' | 'folder';
+
+function getSearchScopeKey(dbPath: string): string {
+  return SEARCH_SCOPE_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+}
+
+export function saveSearchScope(dbPath: string, scope: SearchScope): void {
+  if (typeof window !== "undefined" && dbPath) {
+    localStorage.setItem(getSearchScopeKey(dbPath), scope);
+  }
+}
+
+export function getSearchScope(dbPath: string): SearchScope {
+  if (typeof window !== "undefined" && dbPath) {
+    const stored = localStorage.getItem(getSearchScopeKey(dbPath));
+    if (stored === 'folder') {
+      return 'folder';
+    }
+  }
+  return 'global';
 }

@@ -12,6 +12,7 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
 import { ResizablePanel } from "@/components/ResizablePanel";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getSearchScope, saveSearchScope } from "@/lib/storage";
 import {
   DndContext,
   DragOverlay,
@@ -150,7 +151,7 @@ export function MainApp({ onClose }: MainAppProps) {
   }, [onClose, toast]);
 
   // Custom hooks
-  const { searchQuery, searchResults, isSearching, handleSearch, clearSearch, setIsSearching } = useSearch();
+  const { searchQuery, searchResults, isSearching, searchScope, setSearchScope, handleSearch, clearSearch, setIsSearching } = useSearch();
   
   useAutoLock(performClose);
   
@@ -196,16 +197,18 @@ export function MainApp({ onClose }: MainAppProps) {
     };
   }, [performClose]);
 
-  // Load database path on mount
+  // Load database path and search scope on mount
   useEffect(() => {
     const loadDbInfo = async () => {
       const lastPath = localStorage.getItem("lastDatabasePath");
       if (lastPath) {
         setDbPath(lastPath);
+        const savedScope = getSearchScope(lastPath);
+        setSearchScope(savedScope);
       }
     };
     loadDbInfo();
-  }, []);
+  }, [setSearchScope]);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -299,6 +302,7 @@ export function MainApp({ onClose }: MainAppProps) {
       setIsDashboardView(true);
       setIsFavoritesView(false);
       setFavoriteEntries([]);
+      setSearchScope("global");
       return;
     }
     
@@ -306,6 +310,7 @@ export function MainApp({ onClose }: MainAppProps) {
     
     if (uuid === "_favorites") {
       setIsFavoritesView(true);
+      setSearchScope("global");
       try {
         const favorites = await getFavoriteEntries();
         setFavoriteEntries(favorites);
@@ -472,6 +477,26 @@ export function MainApp({ onClose }: MainAppProps) {
   const activeEntry = getActiveEntry();
   const activeGroup = getActiveGroup();
 
+  // Determine if folder search toggle should be shown
+  const canSearchInFolder = !isDashboardView && !isFavoritesView && selectedGroupUuid !== "";
+
+  // Handle search with current scope
+  const handleSearchWithScope = (query: string) => {
+    handleSearch(query, searchScope, canSearchInFolder ? selectedGroupUuid : undefined);
+  };
+
+  // Handle search scope change and save to localStorage
+  const handleSearchScopeChange = (newScope: typeof searchScope) => {
+    setSearchScope(newScope);
+    if (dbPath) {
+      saveSearchScope(dbPath, newScope);
+    }
+    // Re-run search if there's an active query
+    if (searchQuery.trim()) {
+      handleSearch(searchQuery, newScope, canSearchInFolder ? selectedGroupUuid : undefined);
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -483,10 +508,13 @@ export function MainApp({ onClose }: MainAppProps) {
       <div className="flex h-full w-full flex-col">
         <AppHeader
           searchQuery={searchQuery}
-          onSearchChange={handleSearch}
+          onSearchChange={handleSearchWithScope}
           isDirty={isDirty}
           onSave={handleSave}
           onLogout={handleClose}
+          searchScope={searchScope}
+          onSearchScopeChange={handleSearchScopeChange}
+          canSearchInFolder={canSearchInFolder}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -530,7 +558,9 @@ export function MainApp({ onClose }: MainAppProps) {
                 onRefresh={handleRefresh}
                 isSearching={isSearching || isFavoritesView}
                 selectedGroupName={
-                  isFavoritesView 
+                  isSearching
+                    ? undefined
+                    : isFavoritesView 
                     ? "Favorites"
                     : rootGroup && selectedGroupUuid 
                     ? getGroupPath(rootGroup, selectedGroupUuid)
