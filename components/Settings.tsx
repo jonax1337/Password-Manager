@@ -72,7 +72,7 @@ export function Settings() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
+      <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <div className="h-10 w-10 flex items-center justify-center rounded-md bg-primary/10">
           <SettingsIcon className="h-5 w-5 text-primary" />
         </div>
@@ -82,8 +82,8 @@ export function Settings() {
         </div>
       </div>
 
-      <Tabs defaultValue="appearance" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+      <Tabs defaultValue="appearance" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TabsList className="flex-shrink-0 w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
           <TabsTrigger value="appearance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             Appearance
           </TabsTrigger>
@@ -96,7 +96,7 @@ export function Settings() {
         </TabsList>
 
         {/* Appearance Tab */}
-        <TabsContent value="appearance" className="flex-1 m-0">
+        <TabsContent value="appearance" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -156,7 +156,7 @@ export function Settings() {
         </TabsContent>
 
         {/* Security Tab */}
-        <TabsContent value="security" className="flex-1 m-0">
+        <TabsContent value="security" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -217,7 +217,7 @@ export function Settings() {
         </TabsContent>
 
         {/* Application Tab */}
-        <TabsContent value="application" className="flex-1 m-0">
+        <TabsContent value="application" className="flex-1 m-0 min-h-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <Card>
@@ -250,7 +250,7 @@ export function Settings() {
       </Tabs>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
         <Button variant="outline" onClick={handleClose}>
           Close
         </Button>
