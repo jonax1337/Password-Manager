@@ -106,6 +106,10 @@ export async function deleteEntry(entryUuid: string): Promise<void> {
   return await invoke<void>("delete_entry", { entryUuid });
 }
 
+export async function moveEntry(entryUuid: string, newGroupUuid: string): Promise<void> {
+  return await invoke<void>("move_entry", { entryUuid, newGroupUuid });
+}
+
 
 export async function createGroup(
   name: string,

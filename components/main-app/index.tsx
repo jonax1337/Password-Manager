@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, updateEntry } from "@/lib/tauri";
+import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
@@ -352,10 +352,7 @@ export function MainApp({ onClose }: MainAppProps) {
       }
 
       try {
-        await updateEntry({
-          ...entry,
-          group_uuid: targetId,
-        });
+        await moveEntry(entry.uuid, targetId);
         toast({
           title: "Success",
           description: `Moved "${entry.title}" to "${targetGroup.name}"`,

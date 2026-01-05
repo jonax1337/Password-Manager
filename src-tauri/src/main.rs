@@ -39,6 +39,7 @@ fn main() {
             commands::entry::create_entry,
             commands::entry::update_entry,
             commands::entry::delete_entry,
+            commands::entry::move_entry,
             commands::group::create_group,
             commands::group::rename_group,
             commands::group::move_group,

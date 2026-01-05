@@ -89,7 +89,7 @@ export function EntryListItem({
       <ContextMenuTrigger onContextMenu={(e) => e.stopPropagation()}>
         <div
           ref={setNodeRef}
-          className={`flex items-center gap-2 border-b px-4 py-2.5 hover:bg-accent cursor-pointer select-none ${
+          className={`flex items-center gap-1 border-b px-4 py-2.5 hover:bg-accent cursor-pointer select-none ${
             isSelected || isContextMenuOpen || isChecked ? "bg-accent" : ""
           } ${isDragging ? "opacity-50 bg-accent" : ""}`}
           onDoubleClick={onSelect}
