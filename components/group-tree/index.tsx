@@ -16,17 +16,6 @@ import {
 } from "@/components/ui/context-menu";
 import { getIconComponent } from "@/components/IconPicker";
 import { saveGroupTreeState } from "@/lib/group-state";
-import {
-  DndContext,
-  DragOverlay,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
-  closestCenter,
-} from "@dnd-kit/core";
 
 import { DraggableFolder } from "./DraggableFolder";
 import { CreateGroupDialog, RenameGroupDialog } from "./GroupDialogs";
@@ -41,6 +30,9 @@ export function GroupTree({
   onGroupDeleted,
   dbPath,
   initialExpandedGroups,
+  activeId,
+  overId,
+  activeType,
 }: GroupTreeProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     initialExpandedGroups || new Set([group.uuid])
@@ -53,28 +45,12 @@ export function GroupTree({
   const [renameGroupName, setRenameGroupName] = useState("");
   const [renameGroupIconId, setRenameGroupIconId] = useState(48);
   const [parentUuid, setParentUuid] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     saveGroupTreeState(dbPath, expandedGroups, selectedUuid);
   }, [expandedGroups, selectedUuid, dbPath]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
-  );
-
-  useEffect(() => {
-    if (activeId) {
-      document.body.style.cursor = 'grabbing';
-    } else {
-      document.body.style.cursor = '';
-    }
-    return () => { document.body.style.cursor = ''; };
-  }, [activeId]);
 
   const toggleExpand = (uuid: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -149,59 +125,6 @@ export function GroupTree({
     }
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) {
-      if (overId !== null) setOverId(null);
-      return;
-    }
-    if (overId !== over.id) setOverId(over.id as string);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-    setOverId(null);
-
-    if (!over || active.id === over.id) return;
-
-    const draggedId = active.id as string;
-    const targetId = over.id as string;
-    const draggedGroup = findGroupByUuid(group, draggedId);
-    const targetGroup = findGroupByUuid(group, targetId);
-    
-    if (!draggedGroup || !targetGroup) return;
-
-    try {
-      if (isDescendant(draggedGroup, targetGroup)) {
-        toast({
-          title: "Invalid Move",
-          description: "Cannot move a group into its own descendant",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await moveGroup(draggedId, targetId);
-      toast({
-        title: "Success",
-        description: `Moved "${draggedGroup.name}" into "${targetGroup.name}"`,
-        variant: "success",
-      });
-      onRefresh();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: typeof error === 'string' ? error : (error?.message || "Failed to move group"),
-        variant: "destructive",
-      });
-    }
-  };
-
   const openCreateDialog = (parentId: string | null) => {
     setParentUuid(parentId);
     setShowCreateDialog(true);
@@ -214,18 +137,9 @@ export function GroupTree({
     setShowRenameDialog(true);
   };
 
-  const activeGroup = activeId ? findGroupByUuid(group, activeId) : null;
-
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col">
           <div className="flex items-center justify-between border-b px-4 py-2">
             <h2 className="text-sm font-semibold">Folders</h2>
             <Button
@@ -267,7 +181,8 @@ export function GroupTree({
                     depth={0}
                     selectedUuid={selectedUuid}
                     expandedGroups={expandedGroups}
-                    overId={overId}
+                    overId={overId ?? null}
+                    activeType={activeType}
                     onToggleExpand={toggleExpand}
                     onSelectGroup={onSelectGroup}
                     onOpenCreateDialog={openCreateDialog}
@@ -285,19 +200,6 @@ export function GroupTree({
             </ContextMenuContent>
           </ContextMenu>
         </div>
-        
-        <DragOverlay dropAnimation={null}>
-          {activeGroup ? (
-            <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/50 rounded shadow-lg opacity-60">
-              {(() => {
-                const FolderIcon = getIconComponent(activeGroup.icon_id ?? 48);
-                return <FolderIcon className="h-4 w-4 text-muted-foreground" />;
-              })()}
-              <span className="text-sm font-medium">{activeGroup.name}</span>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
 
       <CreateGroupDialog
         open={showCreateDialog}

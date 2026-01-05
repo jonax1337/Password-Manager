@@ -19,6 +19,7 @@ export function DraggableFolder({
   selectedUuid,
   expandedGroups,
   overId,
+  activeType,
   onToggleExpand,
   onSelectGroup,
   onOpenCreateDialog,
@@ -48,6 +49,7 @@ export function DraggableFolder({
   const hasChildren = group.children && group.children.length > 0;
   const FolderIcon = getIconComponent(group.icon_id ?? 48);
   const isDropTarget = overId === group.uuid;
+  const isEntryDropTarget = isDropTarget && activeType === 'entry';
 
   return (
     <div key={group.uuid}>
@@ -66,7 +68,7 @@ export function DraggableFolder({
               <div
                 className={`flex items-center gap-1 px-2 py-1.5 rounded transition-all outline-none hover:bg-accent/50 data-[state=open]:bg-accent/50 ${
                   isSelected ? "bg-accent font-medium" : ""
-                } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""}`}
+                } ${isDropTarget ? "bg-primary/20 border-l-4 border-l-primary" : ""} ${isEntryDropTarget ? "ring-2 ring-primary ring-inset" : ""}`}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
               >
                 <Button
@@ -136,6 +138,7 @@ export function DraggableFolder({
           selectedUuid={selectedUuid}
           expandedGroups={expandedGroups}
           overId={overId}
+          activeType={activeType}
           onToggleExpand={onToggleExpand}
           onSelectGroup={onSelectGroup}
           onOpenCreateDialog={onOpenCreateDialog}

@@ -8,6 +8,10 @@ export interface GroupTreeProps {
   onGroupDeleted?: (deletedUuid: string) => void;
   dbPath: string;
   initialExpandedGroups?: Set<string>;
+  // DnD props from parent DndContext
+  activeId?: string | null;
+  overId?: string | null;
+  activeType?: 'folder' | 'entry' | null;
 }
 
 export interface DraggableFolderProps {
@@ -16,6 +20,7 @@ export interface DraggableFolderProps {
   selectedUuid: string;
   expandedGroups: Set<string>;
   overId: string | null;
+  activeType?: 'folder' | 'entry' | null;
   onToggleExpand: (uuid: string) => void;
   onSelectGroup: (uuid: string) => void;
   onOpenCreateDialog: (parentUuid: string) => void;

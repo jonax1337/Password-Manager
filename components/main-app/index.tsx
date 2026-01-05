@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries } from "@/lib/tauri";
+import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, updateEntry } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
@@ -12,6 +12,20 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
 import { ResizablePanel } from "@/components/ResizablePanel";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragStartEvent,
+  DragOverEvent,
+  DragEndEvent,
+  closestCenter,
+} from "@dnd-kit/core";
+import { getIconComponent } from "@/components/IconPicker";
+import { moveGroup } from "@/lib/tauri";
+import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
 import { AppHeader } from "./AppHeader";
 import { useAutoLock } from "./hooks/useAutoLock";
@@ -37,7 +51,26 @@ export function MainApp({ onClose }: MainAppProps) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [closeAction, setCloseAction] = useState<'logout' | 'window' | null>(null);
   const [initialExpandedGroups, setInitialExpandedGroups] = useState<Set<string> | undefined>(undefined);
+  const [dndActiveId, setDndActiveId] = useState<string | null>(null);
+  const [dndOverId, setDndOverId] = useState<string | null>(null);
+  const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
+  const [dndActiveData, setDndActiveData] = useState<any>(null);
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
+
+  useEffect(() => {
+    if (dndActiveId) {
+      document.body.style.cursor = 'grabbing';
+    } else {
+      document.body.style.cursor = '';
+    }
+    return () => { document.body.style.cursor = ''; };
+  }, [dndActiveId]);
 
   // Define handleRefresh early so it can be used in hooks
   const handleRefresh = useCallback(() => {
@@ -267,72 +300,229 @@ export function MainApp({ onClose }: MainAppProps) {
     return path ? path.join(" / ") : "";
   };
 
+  // DnD Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const activeData = active.data.current;
+    setDndActiveId(active.id as string);
+    setDndActiveType(activeData?.type || null);
+    setDndActiveData(activeData);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      if (dndOverId !== null) setDndOverId(null);
+      return;
+    }
+    if (dndOverId !== over.id) setDndOverId(over.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const activeData = active.data.current;
+    
+    setDndActiveId(null);
+    setDndOverId(null);
+    setDndActiveType(null);
+    setDndActiveData(null);
+
+    if (!over || active.id === over.id) return;
+
+    const draggedType = activeData?.type;
+    const targetId = over.id as string;
+
+    // Handle Entry drop onto Folder
+    if (draggedType === 'entry' && activeData?.entry) {
+      const entry = activeData.entry as EntryData;
+      const targetGroup = rootGroup ? findGroupByUuid(rootGroup, targetId) : null;
+      
+      if (!targetGroup) {
+        toast({
+          title: "Invalid Target",
+          description: "Please drop the entry onto a valid folder",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Don't move if already in the same group
+      if (entry.group_uuid === targetId) {
+        return;
+      }
+
+      try {
+        await updateEntry({
+          ...entry,
+          group_uuid: targetId,
+        });
+        toast({
+          title: "Success",
+          description: `Moved "${entry.title}" to "${targetGroup.name}"`,
+          variant: "success",
+        });
+        handleRefresh();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to move entry"),
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Handle Folder drop onto Folder
+    if (draggedType === 'folder' && rootGroup) {
+      const draggedId = active.id as string;
+      const draggedGroup = findGroupByUuid(rootGroup, draggedId);
+      const targetGroup = findGroupByUuid(rootGroup, targetId);
+      
+      if (!draggedGroup || !targetGroup) return;
+
+      try {
+        if (isDescendant(draggedGroup, targetGroup)) {
+          toast({
+            title: "Invalid Move",
+            description: "Cannot move a group into its own descendant",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        await moveGroup(draggedId, targetId);
+        toast({
+          title: "Success",
+          description: `Moved "${draggedGroup.name}" into "${targetGroup.name}"`,
+          variant: "success",
+        });
+        handleRefresh();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to move group"),
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Get active entry for DragOverlay
+  const getActiveEntry = (): EntryData | null => {
+    if (dndActiveType === 'entry' && dndActiveData?.entry) {
+      return dndActiveData.entry as EntryData;
+    }
+    return null;
+  };
+
+  // Get active group for DragOverlay
+  const getActiveGroup = (): GroupData | null => {
+    if (dndActiveType === 'folder' && dndActiveId && rootGroup) {
+      return findGroupByUuid(rootGroup, dndActiveId);
+    }
+    return null;
+  };
+
+  const activeEntry = getActiveEntry();
+  const activeGroup = getActiveGroup();
+
   return (
-    <div className="flex h-full w-full flex-col">
-      <AppHeader
-        searchQuery={searchQuery}
-        onSearchChange={handleSearch}
-        isDirty={isDirty}
-        onSave={handleSave}
-        onLogout={handleClose}
-      />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex h-full w-full flex-col">
+        <AppHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearch}
+          isDirty={isDirty}
+          onSave={handleSave}
+          onLogout={handleClose}
+        />
 
-      <div className="flex flex-1 overflow-hidden">
-        <ResizablePanel
-          defaultWidth={256}
-          minWidth={200}
-          maxWidth={500}
-          storageKey="groupTreeWidth"
-        >
-          {rootGroup && (
-            <GroupTree
-              group={rootGroup}
-              selectedUuid={selectedGroupUuid}
-              onSelectGroup={handleGroupSelect}
-              onRefresh={handleRefresh}
-              onGroupDeleted={(deletedUuid) => {
-                if (selectedGroupUuid === deletedUuid) {
-                  handleGroupSelect(rootGroup.uuid);
+        <div className="flex flex-1 overflow-hidden">
+          <ResizablePanel
+            defaultWidth={256}
+            minWidth={200}
+            maxWidth={500}
+            storageKey="groupTreeWidth"
+          >
+            {rootGroup && (
+              <GroupTree
+                group={rootGroup}
+                selectedUuid={selectedGroupUuid}
+                onSelectGroup={handleGroupSelect}
+                onRefresh={handleRefresh}
+                onGroupDeleted={(deletedUuid) => {
+                  if (selectedGroupUuid === deletedUuid) {
+                    handleGroupSelect(rootGroup.uuid);
+                  }
+                }}
+                dbPath={dbPath}
+                initialExpandedGroups={initialExpandedGroups}
+                activeId={dndActiveId}
+                overId={dndOverId}
+                activeType={dndActiveType}
+              />
+            )}
+          </ResizablePanel>
+
+          <div className="flex-1 overflow-hidden">
+            <div className={isDashboardView ? "h-full" : "hidden"}>
+              <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+            </div>
+            
+            {!isDashboardView && (
+              <EntryList
+                groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
+                searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
+                selectedEntry={null}
+                onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
+                onRefresh={handleRefresh}
+                isSearching={isSearching || isFavoritesView}
+                selectedGroupName={
+                  isFavoritesView 
+                    ? "Favorites"
+                    : rootGroup && selectedGroupUuid 
+                    ? getGroupPath(rootGroup, selectedGroupUuid)
+                    : undefined
                 }
-              }}
-              dbPath={dbPath}
-              initialExpandedGroups={initialExpandedGroups}
-            />
-          )}
-        </ResizablePanel>
-
-        <div className="flex-1 overflow-hidden">
-          <div className={isDashboardView ? "h-full" : "hidden"}>
-            <Dashboard refreshTrigger={refreshTrigger} databasePath={dbPath} isDirty={isDirty} />
+                databasePath={dbPath}
+              />
+            )}
           </div>
-          
-          {!isDashboardView && (
-            <EntryList
-              groupUuid={isSearching || isFavoritesView ? "" : selectedGroupUuid}
-              searchResults={isSearching ? searchResults : isFavoritesView ? favoriteEntries : []}
-              selectedEntry={null}
-              onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
-              onRefresh={handleRefresh}
-              isSearching={isSearching || isFavoritesView}
-              selectedGroupName={
-                isFavoritesView 
-                  ? "Favorites"
-                  : rootGroup && selectedGroupUuid 
-                  ? getGroupPath(rootGroup, selectedGroupUuid)
-                  : undefined
-              }
-              databasePath={dbPath}
-            />
-          )}
         </div>
+
+        <UnsavedChangesDialog
+          open={showUnsavedDialog}
+          onCancel={handleUnsavedCancel}
+          onDontSave={handleUnsavedDontSave}
+          onSave={handleUnsavedSave}
+        />
       </div>
 
-      <UnsavedChangesDialog
-        open={showUnsavedDialog}
-        onCancel={handleUnsavedCancel}
-        onDontSave={handleUnsavedDontSave}
-        onSave={handleUnsavedSave}
-      />
-    </div>
+      <DragOverlay dropAnimation={null}>
+        {activeEntry ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-accent rounded shadow-lg opacity-80 border">
+            {(() => {
+              const EntryIcon = getIconComponent(activeEntry.icon_id ?? 0);
+              return <EntryIcon className="h-4 w-4 text-muted-foreground" />;
+            })()}
+            <span className="text-sm font-medium">{activeEntry.title}</span>
+          </div>
+        ) : activeGroup ? (
+          <div className="flex items-center gap-1 px-2 py-1.5 bg-accent/50 rounded shadow-lg opacity-60">
+            {(() => {
+              const FolderIcon = getIconComponent(activeGroup.icon_id ?? 48);
+              return <FolderIcon className="h-4 w-4 text-muted-foreground" />;
+            })()}
+            <span className="text-sm font-medium">{activeGroup.name}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
