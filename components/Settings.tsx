@@ -266,7 +266,7 @@ export function Settings() {
                     <div className="space-y-0.5">
                       <Label htmlFor="live-updates" className="text-sm">Enable live updates</Label>
                       <p className="text-xs text-muted-foreground">
-                        Automatically merge changes from disk when detected
+                        Automatically sync when others make changes
                       </p>
                     </div>
                     <Switch
@@ -282,9 +282,11 @@ export function Settings() {
                     </p>
                   )}
                   {currentDbPath && (
-                    <p className="text-xs text-muted-foreground mt-3">
-                      When enabled, changes are merged automatically. The conflict dialog only appears when you try to save and external changes are detected.
-                    </p>
+                    <div className="text-xs text-muted-foreground mt-3 space-y-1">
+                      <p>
+                        When you have no unsaved changes, external updates are merged automatically in the background.
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
