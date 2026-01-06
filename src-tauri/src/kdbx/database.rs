@@ -6,6 +6,7 @@ use keepass::{
 use secrecy::{ExposeSecret, SecretString};
 use std::fs::File;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use super::error::DatabaseError;
 use super::types::KdfInfo;
@@ -14,6 +15,7 @@ pub struct Database {
     pub db: KeepassDatabase,
     pub path: PathBuf,
     pub password: SecretString,
+    pub last_modified: Option<SystemTime>,
 }
 
 impl Database {
@@ -44,11 +46,15 @@ impl Database {
         
         let mut new_db = Self {
             db,
-            path,
+            path: path.clone(),
             password: secret_password,
+            last_modified: None,
         };
         
         new_db.save()?;
+        new_db.last_modified = std::fs::metadata(&path)
+            .ok()
+            .and_then(|m| m.modified().ok());
         
         Ok(new_db)
     }
@@ -70,10 +76,15 @@ impl Database {
                 }
             })?;
 
+        let last_modified = std::fs::metadata(&path)
+            .ok()
+            .and_then(|m| m.modified().ok());
+
         Ok(Self {
             db,
             path,
             password: secret_password,
+            last_modified,
         })
     }
 
@@ -86,6 +97,39 @@ impl Database {
         self.db
             .save(&mut std::io::BufWriter::new(file), key)
             .map_err(|e| DatabaseError::SaveError(e.to_string()))?;
+
+        self.last_modified = std::fs::metadata(&self.path)
+            .ok()
+            .and_then(|m| m.modified().ok());
+
+        Ok(())
+    }
+
+    pub fn check_for_changes(&self) -> Result<bool, DatabaseError> {
+        let current_modified = std::fs::metadata(&self.path)
+            .ok()
+            .and_then(|m| m.modified().ok());
+
+        Ok(match (self.last_modified, current_modified) {
+            (Some(last), Some(current)) => current > last,
+            _ => false,
+        })
+    }
+
+    pub fn merge_database(&mut self) -> Result<(), DatabaseError> {
+        let file = File::open(&self.path)
+            .map_err(|e| DatabaseError::OpenError(format!("Failed to open file: {}", e)))?;
+
+        let key = DatabaseKey::new().with_password(self.password.expose_secret());
+        
+        let disk_db = KeepassDatabase::open(&mut std::io::BufReader::new(file), key)
+            .map_err(|e| DatabaseError::OpenError(e.to_string()))?;
+
+        self.db = disk_db;
+        
+        self.last_modified = std::fs::metadata(&self.path)
+            .ok()
+            .and_then(|m| m.modified().ok());
 
         Ok(())
     }

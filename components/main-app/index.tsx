@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry } from "@/lib/tauri";
+import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry, checkDatabaseChanges, mergeDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
+import { DatabaseConflictDialog } from "@/components/DatabaseConflictDialog";
 import { Dashboard } from "@/components/Dashboard";
 import { openEntryWindow, requestCloseAllChildWindows } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
@@ -82,6 +83,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndOverId, setDndOverId] = useState<string | null>(null);
   const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
   const [dndActiveData, setDndActiveData] = useState<DragData>(null);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -166,6 +168,11 @@ export function MainApp({ onClose }: MainAppProps) {
 
   const handleSave = useCallback(async () => {
     try {
+      const hasChanges = await checkDatabaseChanges();
+      if (hasChanges) {
+        setShowConflictDialog(true);
+        return;
+      }
       await saveDatabase();
       setIsDirty(false);
       toast({
@@ -181,6 +188,50 @@ export function MainApp({ onClose }: MainAppProps) {
       });
     }
   }, [toast]);
+
+  const handleSynchronize = useCallback(async () => {
+    try {
+      await mergeDatabase();
+      await handleRefresh();
+      setShowConflictDialog(false);
+      toast({
+        title: "Success",
+        description: "Database synchronized successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to synchronize database"),
+        variant: "destructive",
+      });
+      setShowConflictDialog(false);
+    }
+  }, [toast, handleRefresh]);
+
+  const handleOverwrite = useCallback(async () => {
+    try {
+      await saveDatabase();
+      setIsDirty(false);
+      setShowConflictDialog(false);
+      toast({
+        title: "Success",
+        description: "Database saved successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to save database"),
+        variant: "destructive",
+      });
+      setShowConflictDialog(false);
+    }
+  }, [toast]);
+
+  const handleConflictCancel = useCallback(() => {
+    setShowConflictDialog(false);
+  }, []);
 
   useKeyboardShortcuts({ onSave: handleSave });
   useEntryEvents(handleRefresh);
@@ -599,6 +650,14 @@ export function MainApp({ onClose }: MainAppProps) {
           onCancel={handleUnsavedCancel}
           onDontSave={handleUnsavedDontSave}
           onSave={handleUnsavedSave}
+        />
+
+        <DatabaseConflictDialog
+          open={showConflictDialog}
+          databasePath={dbPath}
+          onSynchronize={handleSynchronize}
+          onOverwrite={handleOverwrite}
+          onCancel={handleConflictCancel}
         />
       </div>
 
