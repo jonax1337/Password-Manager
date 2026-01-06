@@ -63,6 +63,8 @@
             "core:window:allow-destroy",
             "dialog:allow-ask",
             "dialog:allow-confirm",
+            "dialog:allow-open",
+            "dialog:allow-save",
             "fs:allow-read-file",
             "fs:allow-write-file",
             "clipboard-manager:allow-write-text",
