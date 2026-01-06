@@ -4,6 +4,7 @@ const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
 const HIBP_ENABLED_KEY = "hibpEnabled";
 const SEARCH_SCOPE_PREFIX = "searchScope_";
+const LIVE_UPDATES_PREFIX = "liveUpdates_";
 
 export function saveLastDatabasePath(path: string): void {
   if (typeof window !== "undefined") {
@@ -156,4 +157,23 @@ export function getSearchScope(dbPath: string): SearchScope {
     }
   }
   return 'global';
+}
+
+// Live Updates management (automatic merging per database)
+function getLiveUpdatesKey(dbPath: string): string {
+  return LIVE_UPDATES_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+}
+
+export function setLiveUpdates(dbPath: string, enabled: boolean): void {
+  if (typeof window !== "undefined" && dbPath) {
+    localStorage.setItem(getLiveUpdatesKey(dbPath), enabled.toString());
+  }
+}
+
+export function getLiveUpdates(dbPath: string): boolean {
+  if (typeof window !== "undefined" && dbPath) {
+    const stored = localStorage.getItem(getLiveUpdatesKey(dbPath));
+    return stored === "true";
+  }
+  return false;
 }

@@ -108,6 +108,37 @@ pub fn get_kdf_info(state: State<AppState>) -> Result<KdfInfo, String> {
 }
 
 #[tauri::command]
+pub fn check_database_changes(state: State<AppState>) -> Result<bool, String> {
+    let database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("check_database_changes: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_ref() {
+        db.check_for_changes().map_err(|e| e.to_string())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn merge_database(state: State<AppState>) -> Result<(), String> {
+    let mut database_lock = state.database.lock()
+        .map_err(|e| {
+            eprintln!("merge_database: Lock poisoned: {}", e);
+            "Failed to access database state".to_string()
+        })?;
+
+    if let Some(db) = database_lock.as_mut() {
+        db.merge_database().map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("No database loaded".to_string())
+    }
+}
+
+#[tauri::command]
 pub fn upgrade_kdf_parameters(state: State<AppState>) -> Result<(), String> {
     let mut database_lock = state.database.lock()
         .map_err(|e| {

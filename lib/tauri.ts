@@ -74,6 +74,14 @@ export async function saveDatabase(): Promise<void> {
   return await invoke<void>("save_database");
 }
 
+export async function checkDatabaseChanges(): Promise<boolean> {
+  return await invoke<boolean>("check_database_changes");
+}
+
+export async function mergeDatabase(): Promise<void> {
+  return await invoke<void>("merge_database");
+}
+
 export async function closeDatabase(): Promise<void> {
   return await invoke<void>("close_database");
 }

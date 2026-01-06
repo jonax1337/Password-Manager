@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry } from "@/lib/tauri";
+import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry, checkDatabaseChanges, mergeDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
+import { DatabaseConflictDialog } from "@/components/DatabaseConflictDialog";
 import { Dashboard } from "@/components/Dashboard";
 import { openEntryWindow, requestCloseAllChildWindows } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,7 +13,7 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
 import { ResizablePanel } from "@/components/ResizablePanel";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { getSearchScope, saveSearchScope } from "@/lib/storage";
+import { getSearchScope, saveSearchScope, getLiveUpdates } from "@/lib/storage";
 import {
   DndContext,
   DragOverlay,
@@ -82,6 +83,8 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndOverId, setDndOverId] = useState<string | null>(null);
   const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
   const [dndActiveData, setDndActiveData] = useState<DragData>(null);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -166,6 +169,11 @@ export function MainApp({ onClose }: MainAppProps) {
 
   const handleSave = useCallback(async () => {
     try {
+      const hasChanges = await checkDatabaseChanges();
+      if (hasChanges) {
+        setShowConflictDialog(true);
+        return;
+      }
       await saveDatabase();
       setIsDirty(false);
       toast({
@@ -181,6 +189,53 @@ export function MainApp({ onClose }: MainAppProps) {
       });
     }
   }, [toast]);
+
+  const handleSynchronize = useCallback(async () => {
+    try {
+      await mergeDatabase();
+      await handleRefresh();
+      setShowConflictDialog(false);
+      // Automatically save after merge to mark as not dirty
+      await saveDatabase();
+      setIsDirty(false);
+      toast({
+        title: "Success",
+        description: "Database synchronized and saved successfully.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to synchronize database"),
+        variant: "destructive",
+      });
+      setShowConflictDialog(false);
+    }
+  }, [toast, handleRefresh]);
+
+  const handleOverwrite = useCallback(async () => {
+    try {
+      await saveDatabase();
+      setIsDirty(false);
+      setShowConflictDialog(false);
+      toast({
+        title: "Success",
+        description: "Database saved successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to save database"),
+        variant: "destructive",
+      });
+      setShowConflictDialog(false);
+    }
+  }, [toast]);
+
+  const handleConflictCancel = useCallback(() => {
+    setShowConflictDialog(false);
+  }, []);
 
   useKeyboardShortcuts({ onSave: handleSave });
   useEntryEvents(handleRefresh);
@@ -205,10 +260,57 @@ export function MainApp({ onClose }: MainAppProps) {
         setDbPath(lastPath);
         const savedScope = getSearchScope(lastPath);
         setSearchScope(savedScope);
+        // Load live updates setting for this database
+        setLiveUpdatesEnabled(getLiveUpdates(lastPath));
       }
     };
     loadDbInfo();
   }, [setSearchScope]);
+
+  // Listen for live updates setting changes from Settings window
+  useEffect(() => {
+    const handleLiveUpdatesChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ enabled: boolean }>;
+      setLiveUpdatesEnabled(customEvent.detail.enabled);
+    };
+
+    window.addEventListener('liveUpdatesChanged', handleLiveUpdatesChange);
+
+    return () => {
+      window.removeEventListener('liveUpdatesChanged', handleLiveUpdatesChange);
+    };
+  }, []);
+
+  // Periodic polling for database changes when live updates is enabled
+  useEffect(() => {
+    if (!liveUpdatesEnabled || !dbPath || isDirty) {
+      return;
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const hasChanges = await checkDatabaseChanges();
+        
+        if (hasChanges) {
+            await mergeDatabase();
+            await handleRefresh();
+            await saveDatabase();
+            setIsDirty(false);
+            toast({
+              title: "Auto-sync",
+              description: "Database synchronized automatically.",
+              variant: "success",
+            });
+        }
+      } catch (error) {
+        console.error('Failed to check for database changes:', error);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [liveUpdatesEnabled, dbPath, isDirty, handleRefresh, toast]);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -599,6 +701,14 @@ export function MainApp({ onClose }: MainAppProps) {
           onCancel={handleUnsavedCancel}
           onDontSave={handleUnsavedDontSave}
           onSave={handleUnsavedSave}
+        />
+
+        <DatabaseConflictDialog
+          open={showConflictDialog}
+          databasePath={dbPath}
+          onSynchronize={handleSynchronize}
+          onOverwrite={handleOverwrite}
+          onCancel={handleConflictCancel}
         />
       </div>
 
