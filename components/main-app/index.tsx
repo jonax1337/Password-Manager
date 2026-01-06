@@ -298,7 +298,7 @@ export function MainApp({ onClose }: MainAppProps) {
             setIsDirty(false);
             toast({
               title: "Auto-sync",
-              description: "Database synchronized automatically",
+              description: "Changes from the database file were applied automatically",
               variant: "success",
             });
         }
