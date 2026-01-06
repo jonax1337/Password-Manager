@@ -200,7 +200,7 @@ export function MainApp({ onClose }: MainAppProps) {
       setIsDirty(false);
       toast({
         title: "Success",
-        description: "Database synchronized and saved successfully",
+        description: "Database reloaded from disk and saved.",
         variant: "success",
       });
     } catch (error: any) {
