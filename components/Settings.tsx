@@ -283,7 +283,7 @@ export function Settings() {
                   )}
                   {currentDbPath && (
                     <p className="text-xs text-muted-foreground mt-3">
-                      Conflicts only show a dialog if you have unsaved changes.
+                      When enabled, changes are merged automatically. The conflict dialog only appears when you try to save and external changes are detected.
                     </p>
                   )}
                 </CardContent>
