@@ -32,6 +32,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
   const [urlError, setUrlError] = useState<string | null>(null);
   const [copiedUsername, setCopiedUsername] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [initialAttachmentKeys, setInitialAttachmentKeys] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Sync form state when entry changes (e.g., switching entries)
@@ -43,6 +44,8 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
     setRepeatPassword(entry.password); // Auto-fill repeat password
     // Load icon ID from entry.icon_id field
     setIconId(entry.icon_id ?? 0);
+    // Track initial attachment keys to avoid re-uploading existing attachments
+    setInitialAttachmentKeys(new Set(entry.attachments.map(a => a.key)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.uuid]);
 
@@ -94,10 +97,21 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
       return;
     }
 
+    // Prepare data for save - clear attachment data for existing attachments to avoid re-uploading
+    const attachmentsToSave = formData.attachments.map(att => {
+      if (initialAttachmentKeys.has(att.key)) {
+        // Existing attachment - send empty data array (backend will keep existing)
+        return { ...att, data: [] };
+      }
+      // New attachment - send full data
+      return att;
+    });
+
     // Always ensure we're saving with the correct UUID
     const dataToSave = {
       ...formData,
       uuid: entry.uuid,
+      attachments: attachmentsToSave,
     };
     
     try {

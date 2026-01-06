@@ -307,29 +307,22 @@ impl Database {
                 .collect()
         };
         
-        // Remove attachments that are not in the new list
+        // Get new attachment keys
         let new_keys: Vec<String> = entry_data.attachments.iter().map(|a| a.key.clone()).collect();
-        for key in current_keys {
-            if !new_keys.contains(&key) {
-                self.delete_entry_attachment(&entry_data.uuid, &key)?;
+        
+        // Remove attachments that are not in the new list
+        for key in &current_keys {
+            if !new_keys.contains(key) {
+                self.delete_entry_attachment(&entry_data.uuid, key)?;
             }
         }
         
-        // Add new attachments (this will update existing ones by key)
+        // Add only new attachments (skip existing ones to avoid re-uploading)
         for attachment in entry_data.attachments {
-            // Check if this key already exists
-            let field_name = format!("Binary.{}", attachment.key);
-            let key_exists = {
-                let entry = self.find_entry_by_uuid(&entry_data.uuid)?;
-                entry.fields.contains_key(&field_name)
-            };
-            
-            if key_exists {
-                // Remove old one first
-                self.delete_entry_attachment(&entry_data.uuid, &attachment.key)?;
+            // Only add if it doesn't already exist
+            if !current_keys.contains(&attachment.key) {
+                self.add_entry_attachment(&entry_data.uuid, attachment.key, attachment.data)?;
             }
-            // Add new one
-            self.add_entry_attachment(&entry_data.uuid, attachment.key, attachment.data)?;
         }
         
         Ok(())
