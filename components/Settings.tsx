@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2, ShieldAlert } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Monitor, Lock, Timer, X, Minimize2, ShieldAlert, RefreshCw } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTheme } from "next-themes";
 import { ask } from "@tauri-apps/plugin-dialog";
@@ -20,14 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getHibpEnabled, setHibpEnabled } from "@/lib/storage";
+import { getHibpEnabled, setHibpEnabled, getLiveUpdates, setLiveUpdates } from "@/lib/storage";
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [autoLockSeconds, setAutoLockSeconds] = useState<string>("0");
   const [closeToTray, setCloseToTray] = useState<boolean>(false);
   const [hibpEnabled, setHibpEnabledState] = useState<boolean>(false);
+  const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
+  const [currentDbPath, setCurrentDbPath] = useState<string>("");
 
   useEffect(() => {
     setMounted(true);
@@ -41,6 +43,12 @@ export function Settings() {
     setCloseToTray(closeToTraySaved === "true");
     // Load HIBP setting
     setHibpEnabledState(getHibpEnabled());
+    // Load current database path
+    const dbPath = localStorage.getItem("lastDatabasePath");
+    if (dbPath) {
+      setCurrentDbPath(dbPath);
+      setLiveUpdatesEnabled(getLiveUpdates(dbPath));
+    }
   }, []);
 
   const handleClose = async () => {
@@ -78,6 +86,15 @@ export function Settings() {
     }
   };
 
+  const handleLiveUpdatesChange = (checked: boolean) => {
+    setLiveUpdatesEnabled(checked);
+    if (currentDbPath) {
+      setLiveUpdates(currentDbPath, checked);
+      // Dispatch event to notify main app
+      window.dispatchEvent(new CustomEvent('liveUpdatesChanged', { detail: { enabled: checked } }));
+    }
+  };
+
   if (!mounted) {
     return null;
   }
@@ -102,6 +119,9 @@ export function Settings() {
           </TabsTrigger>
           <TabsTrigger value="security" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             Security
+          </TabsTrigger>
+          <TabsTrigger value="database" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
+            Database
           </TabsTrigger>
           <TabsTrigger value="application" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2">
             Application
@@ -223,6 +243,49 @@ export function Settings() {
                   <p className="text-xs text-amber-600 dark:text-amber-500 mt-3">
                     This feature sends partial password hashes over the internet to check for breaches. Only the first 5 characters of the SHA-1 hash are sent (k-anonymity).
                   </p>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Database Tab */}
+        <TabsContent value="database" className="flex-1 m-0 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Live Updates</CardTitle>
+                  </div>
+                  <CardDescription>Automatically merge database changes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="live-updates" className="text-sm">Enable live updates</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically merge changes from disk when detected
+                      </p>
+                    </div>
+                    <Switch
+                      id="live-updates"
+                      checked={liveUpdatesEnabled}
+                      onCheckedChange={handleLiveUpdatesChange}
+                      disabled={!currentDbPath}
+                    />
+                  </div>
+                  {!currentDbPath && (
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-3">
+                      No database is currently open. This setting is per-database.
+                    </p>
+                  )}
+                  {currentDbPath && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Conflicts only show a dialog if you have unsaved changes.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>

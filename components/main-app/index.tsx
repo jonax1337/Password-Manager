@@ -13,7 +13,7 @@ import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
 import { ResizablePanel } from "@/components/ResizablePanel";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { getSearchScope, saveSearchScope } from "@/lib/storage";
+import { getSearchScope, saveSearchScope, getLiveUpdates } from "@/lib/storage";
 import {
   DndContext,
   DragOverlay,
@@ -84,6 +84,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndActiveType, setDndActiveType] = useState<'folder' | 'entry' | null>(null);
   const [dndActiveData, setDndActiveData] = useState<DragData>(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -194,9 +195,12 @@ export function MainApp({ onClose }: MainAppProps) {
       await mergeDatabase();
       await handleRefresh();
       setShowConflictDialog(false);
+      // Automatically save after merge to mark as not dirty
+      await saveDatabase();
+      setIsDirty(false);
       toast({
         title: "Success",
-        description: "Database synchronized successfully",
+        description: "Database synchronized and saved successfully",
         variant: "success",
       });
     } catch (error: any) {
@@ -256,10 +260,57 @@ export function MainApp({ onClose }: MainAppProps) {
         setDbPath(lastPath);
         const savedScope = getSearchScope(lastPath);
         setSearchScope(savedScope);
+        // Load live updates setting for this database
+        setLiveUpdatesEnabled(getLiveUpdates(lastPath));
       }
     };
     loadDbInfo();
   }, [setSearchScope]);
+
+  // Listen for live updates setting changes from Settings window
+  useEffect(() => {
+    const handleLiveUpdatesChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ enabled: boolean }>;
+      setLiveUpdatesEnabled(customEvent.detail.enabled);
+    };
+
+    window.addEventListener('liveUpdatesChanged', handleLiveUpdatesChange);
+
+    return () => {
+      window.removeEventListener('liveUpdatesChanged', handleLiveUpdatesChange);
+    };
+  }, []);
+
+  // Periodic polling for database changes when live updates is enabled
+  useEffect(() => {
+    if (!liveUpdatesEnabled || !dbPath || isDirty) {
+      return;
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const hasChanges = await checkDatabaseChanges();
+        
+        if (hasChanges) {
+            await mergeDatabase();
+            await handleRefresh();
+            await saveDatabase();
+            setIsDirty(false);
+            toast({
+              title: "Auto-sync",
+              description: "Database synchronized automatically",
+              variant: "success",
+            });
+        }
+      } catch (error) {
+        console.error('Failed to check for database changes:', error);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [liveUpdatesEnabled, dbPath, isDirty, handleRefresh, toast]);
 
   const loadGroups = useCallback(async () => {
     try {
