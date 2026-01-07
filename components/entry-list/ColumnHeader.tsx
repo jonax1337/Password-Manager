@@ -55,12 +55,12 @@ export function ColumnHeader({
     const diff = e.clientX - startX;
     let newWidth = Math.max(60, startWidth + diff);
     
-    // Calculate available width (container width minus fixed elements)
+    // Calculate available width (container width minus other columns)
     const containerWidth = scrollContainerRef.current.offsetWidth;
     const otherColumnsWidth = visibleColumns
       .filter(col => col.id !== resizingColumn)
       .reduce((sum, col) => sum + col.width, 0);
-    const maxWidth = containerWidth - otherColumnsWidth - 20; // 20px buffer
+    const maxWidth = containerWidth - otherColumnsWidth; // Use full available space
     
     // Limit width to available space
     newWidth = Math.min(newWidth, maxWidth);
@@ -182,11 +182,6 @@ export function ColumnHeader({
                 </div>
               ))}
             </div>
-          </div>
-          
-          {/* Fixed right section */}
-          <div className="flex items-center gap-1 px-4 py-2 flex-shrink-0">
-            <div className="w-8"></div>
           </div>
         </div>
       </ContextMenuTrigger>
