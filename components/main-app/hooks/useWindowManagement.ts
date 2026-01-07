@@ -22,8 +22,10 @@ export function useWindowManagement({ dbPath, isDirty, onCloseRequested }: UseWi
   useEffect(() => {
     const updateTitle = async () => {
       const appWindow = getCurrentWindow();
-      const title = dbPath 
-        ? (isDirty ? `${dbPath}* - Simple Password Manager` : `${dbPath} - Simple Password Manager`)
+      // Extract filename from full path
+      const fileName = dbPath ? dbPath.split(/[\\/]/).pop() || dbPath : '';
+      const title = fileName
+        ? (isDirty ? `${fileName}* - Simple Password Manager` : `${fileName} - Simple Password Manager`)
         : 'Simple Password Manager';
       await appWindow.setTitle(title);
     };
