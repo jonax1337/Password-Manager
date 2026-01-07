@@ -72,7 +72,7 @@ export function CustomTitleBar({ title = "Simple Password Manager", hideMaximize
           alt="App Icon" 
           className="h-4 w-4 mr-2 pointer-events-none"
         />
-        <span className="text-sm font-medium text-foreground pointer-events-none">
+        <span className="text-xs font-medium text-foreground pointer-events-none">
           {title}
         </span>
       </div>
