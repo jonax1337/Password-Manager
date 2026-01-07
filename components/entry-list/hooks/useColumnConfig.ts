@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { saveColumnConfig, getColumnConfig, type ColumnVisibility } from "@/lib/storage";
 import { DEFAULT_COLUMNS, type ColumnConfig, type ColumnId, type SortConfig } from "../types";
 
@@ -9,30 +9,25 @@ export function useColumnConfig(databasePath?: string) {
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
     if (databasePath) {
       const savedConfig = getColumnConfig(databasePath);
-      if (savedConfig) {
-        return DEFAULT_COLUMNS.map(col => ({
-          ...col,
-          visible: savedConfig[col.id as keyof ColumnVisibility] ?? col.visible
-        }));
-      }
+      return DEFAULT_COLUMNS.map(col => ({
+        ...col,
+        visible: savedConfig ? (savedConfig[col.id as keyof ColumnVisibility] ?? col.visible) : col.visible
+      }));
     }
     return DEFAULT_COLUMNS;
   });
+  
+  const previousWidthRef = useRef<number>(0);
 
   // Reload column config when database path changes
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (databasePath) {
       const savedConfig = getColumnConfig(databasePath);
-      if (savedConfig) {
-        setColumns(DEFAULT_COLUMNS.map(col => ({
-          ...col,
-          visible: savedConfig[col.id as keyof ColumnVisibility] ?? col.visible
-        })));
-      } else {
-        // Reset to defaults if no saved config
-        setColumns(DEFAULT_COLUMNS);
-      }
+      setColumns(DEFAULT_COLUMNS.map(col => ({
+        ...col,
+        visible: savedConfig ? (savedConfig[col.id as keyof ColumnVisibility] ?? col.visible) : col.visible
+      })));
     }
   }, [databasePath]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -62,12 +57,47 @@ export function useColumnConfig(databasePath?: string) {
     });
   };
 
+  // Update column width (in-memory only, resets on DB reload)
+  const updateColumnWidth = (columnId: ColumnId, width: number) => {
+    setColumns(prev => 
+      prev.map(col => 
+        col.id === columnId ? { ...col, width } : col
+      )
+    );
+  };
+  
+  // Adjust column widths proportionally on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      
+      // Only adjust if we have a previous width and it changed significantly
+      if (previousWidthRef.current > 0 && Math.abs(currentWidth - previousWidthRef.current) > 50) {
+        const ratio = currentWidth / previousWidthRef.current;
+        
+        setColumns(prev => prev.map(col => ({
+          ...col,
+          width: Math.max(60, Math.round(col.width * ratio))
+        })));
+      }
+      
+      previousWidthRef.current = currentWidth;
+    };
+    
+    // Set initial width
+    previousWidthRef.current = window.innerWidth;
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const visibleColumns = columns.filter(col => col.visible);
 
   return {
     columns,
     visibleColumns,
     toggleColumn,
+    updateColumnWidth,
   };
 }
 

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 const LAST_DATABASE_KEY = "lastDatabasePath";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
+const COLUMN_WIDTHS_PREFIX = "columnWidths_";
 const HIBP_ENABLED_KEY = "hibpEnabled";
 const SEARCH_SCOPE_PREFIX = "searchScope_";
 const LIVE_UPDATES_PREFIX = "liveUpdates_";
@@ -36,6 +37,16 @@ export interface ColumnVisibility {
   modified: boolean;
 }
 
+export interface ColumnWidths {
+  title: number;
+  username: number;
+  password: number;
+  url: number;
+  notes: number;
+  created: number;
+  modified: number;
+}
+
 function getDatabaseKey(dbPath: string): string {
   // Create a simple hash from the path for the storage key
   return COLUMN_CONFIG_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
@@ -53,6 +64,30 @@ export function getColumnConfig(dbPath: string): ColumnVisibility | null {
     if (stored) {
       try {
         return JSON.parse(stored) as ColumnVisibility;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function getColumnWidthsKey(dbPath: string): string {
+  return COLUMN_WIDTHS_PREFIX + btoa(dbPath).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+}
+
+export function saveColumnWidths(dbPath: string, widths: ColumnWidths): void {
+  if (typeof window !== "undefined" && dbPath) {
+    localStorage.setItem(getColumnWidthsKey(dbPath), JSON.stringify(widths));
+  }
+}
+
+export function getColumnWidths(dbPath: string): ColumnWidths | null {
+  if (typeof window !== "undefined" && dbPath) {
+    const stored = localStorage.getItem(getColumnWidthsKey(dbPath));
+    if (stored) {
+      try {
+        return JSON.parse(stored) as ColumnWidths;
       } catch {
         return null;
       }

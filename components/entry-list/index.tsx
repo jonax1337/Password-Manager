@@ -44,9 +44,33 @@ export function EntryList({
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
   const [hoveredEntry, setHoveredEntry] = useState<EntryData | null>(null);
   const { toast } = useToast();
+  const scrollRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    
+    const handleScroll = (e: Event) => {
+      const scrollLeft = (e.target as HTMLElement).scrollLeft;
+      const allScrollables = node.querySelectorAll('.row-scroll');
+      allScrollables.forEach(el => {
+        if (el !== e.target) {
+          el.scrollLeft = scrollLeft;
+        }
+      });
+    };
+    
+    const scrollables = node.querySelectorAll('.row-scroll');
+    scrollables.forEach(el => {
+      el.addEventListener('scroll', handleScroll);
+    });
+    
+    return () => {
+      scrollables.forEach(el => {
+        el.removeEventListener('scroll', handleScroll);
+      });
+    };
+  }, []);
 
   // Custom hooks
-  const { columns, visibleColumns, toggleColumn } = useColumnConfig(databasePath);
+  const { columns, visibleColumns, toggleColumn, updateColumnWidth } = useColumnConfig(databasePath);
   const { currentSort, handleSort } = useSortConfig(groupUuid);
   const { 
     selectedEntries, 
@@ -299,16 +323,18 @@ export function EntryList({
           <ContextMenuTrigger asChild>
             <ScrollArea className="flex-1">
               {entries.length > 0 ? (
-                <div className="min-h-full">
+                <div ref={scrollRef} className="min-h-full">
                   {/* Column Header */}
                   <ColumnHeader
                     columns={columns}
                     visibleColumns={visibleColumns}
                     currentSort={currentSort}
                     isAllSelected={isAllSelected}
+                    entries={sortedEntries}
                     onToggleSelectAll={toggleSelectAll}
                     onSort={handleSort}
                     onToggleColumn={toggleColumn}
+                    onColumnResize={updateColumnWidth}
                   />
                   
                   {/* Entries */}
