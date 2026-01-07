@@ -44,33 +44,43 @@ export function ColumnHeader({
   const handleResizeStart = useCallback((e: React.MouseEvent, columnId: ColumnId, currentWidth: number) => {
     e.preventDefault();
     e.stopPropagation();
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+  const visibleColumnsRef = useRef<ColumnConfig[]>(visibleColumns);
+
+  useEffect(() => {
+    // Keep visibleColumns ref in sync so resize calculations use latest column data
+    visibleColumnsRef.current = visibleColumns;
+  }, [visibleColumns]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, columnId: ColumnId, currentWidth: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     setResizingColumn(columnId);
     setStartX(e.clientX);
     setStartWidth(currentWidth);
+    startXRef.current = e.clientX;
+    startWidthRef.current = currentWidth;
   }, []);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!resizingColumn || !scrollContainerRef.current) return;
-    
-    const diff = e.clientX - startX;
-    let newWidth = Math.max(60, startWidth + diff);
-    
+
+    const diff = e.clientX - startXRef.current;
+    let newWidth = Math.max(60, startWidthRef.current + diff);
+
     // Calculate available width (container width minus other columns)
     const containerWidth = scrollContainerRef.current.offsetWidth;
-    const otherColumnsWidth = visibleColumns
+    const otherColumnsWidth = visibleColumnsRef.current
       .filter(col => col.id !== resizingColumn)
       .reduce((sum, col) => sum + col.width, 0);
     const maxWidth = containerWidth - otherColumnsWidth; // Use full available space
-    
-    // Limit width to available space only when there's at least enough room
-    // for the minimum column width. If not, allow the column to grow beyond
-    // the container, enabling horizontal scrolling instead of collapsing.
-    if (maxWidth > 60) {
-      newWidth = Math.min(newWidth, maxWidth);
-    }
-    
+
+    // Limit width to available space
+    newWidth = Math.min(newWidth, maxWidth);
+
     onColumnResize(resizingColumn, newWidth);
-  }, [resizingColumn, startX, startWidth, onColumnResize, visibleColumns]);
+  }, [resizingColumn, onColumnResize]);
 
   const handleResizeEnd = useCallback(() => {
     setResizingColumn(null);
