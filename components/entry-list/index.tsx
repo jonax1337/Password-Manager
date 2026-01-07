@@ -33,6 +33,7 @@ export function EntryList({
   selectedEntry,
   onSelectEntry,
   onRefresh,
+  onSearchRefresh,
   isSearching = false,
   selectedGroupName,
   databasePath,
@@ -206,6 +207,42 @@ export function EntryList({
     }
   };
 
+  const handleDuplicateEntry = async (entry: EntryData) => {
+    try {
+      const duplicatedEntry: EntryData = {
+        ...entry,
+        uuid: crypto.randomUUID(),
+        title: `${entry.title} (Copy)`,
+        created: undefined,
+        modified: undefined,
+        last_accessed: undefined,
+        usage_count: 0,
+        history: [],
+      };
+
+      await createEntry(duplicatedEntry);
+      
+      toast({
+        title: "Success",
+        description: "Entry duplicated successfully",
+        variant: "success",
+      });
+      
+      onRefresh();
+      
+      // Refresh search results if we're in search mode
+      if (isSearching && onSearchRefresh) {
+        onSearchRefresh();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: typeof error === 'string' ? error : (error?.message || "Failed to duplicate entry"),
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteEntry = async (entry: EntryData) => {
     const shouldDelete = await ask(
       `Are you sure you want to delete "${entry.title}" and all its data?`,
@@ -355,6 +392,7 @@ export function EntryList({
                         onContextMenuChange={(open) => setContextMenuEntryUuid(open ? entry.uuid : null)}
                         onCopyField={handleCopyField}
                         onOpenUrl={handleOpenUrl}
+                        onDuplicate={() => handleDuplicateEntry(entry)}
                         onDelete={() => handleDeleteEntry(entry)}
                         onRefresh={onRefresh}
                         formatTimestamp={formatTimestamp}

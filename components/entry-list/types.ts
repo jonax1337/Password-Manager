@@ -31,6 +31,7 @@ export interface EntryListProps {
   selectedEntry: EntryData | null;
   onSelectEntry: (entry: EntryData) => void;
   onRefresh: () => void;
+  onSearchRefresh?: () => void;
   isSearching?: boolean;
   selectedGroupName?: string;
   databasePath?: string;

@@ -154,7 +154,7 @@ export function MainApp({ onClose }: MainAppProps) {
   }, [onClose, toast]);
 
   // Custom hooks
-  const { searchQuery, searchResults, isSearching, searchScope, setSearchScope, handleSearch, clearSearch, setIsSearching } = useSearch();
+  const { searchQuery, searchResults, isSearching, searchScope, setSearchScope, handleSearch, clearSearch, refreshSearch, setIsSearching } = useSearch();
   
   useAutoLock(performClose);
   
@@ -680,6 +680,7 @@ export function MainApp({ onClose }: MainAppProps) {
                 selectedEntry={null}
                 onSelectEntry={(entry) => openEntryWindow(entry, entry.group_uuid)}
                 onRefresh={handleRefresh}
+                onSearchRefresh={() => refreshSearch(searchScope, canSearchInFolder ? selectedGroupUuid : undefined)}
                 isSearching={isSearching || isFavoritesView}
                 selectedGroupName={
                   isSearching

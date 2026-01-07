@@ -44,6 +44,26 @@ export function useSearch() {
     setIsSearching(false);
   };
 
+  const refreshSearch = async (scope: SearchScope, groupUuid?: string) => {
+    if (searchQuery.trim() && isSearching) {
+      try {
+        let results: EntryData[];
+        if (scope === 'folder' && groupUuid) {
+          results = await searchEntriesInGroup(searchQuery, groupUuid);
+        } else {
+          results = await searchEntries(searchQuery);
+        }
+        setSearchResults(results);
+      } catch (error: any) {
+        toast({
+          title: "Search Error",
+          description: typeof error === 'string' ? error : (error?.message || "Failed to refresh search"),
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return {
     searchQuery,
     searchResults,
@@ -52,6 +72,7 @@ export function useSearch() {
     setSearchScope,
     handleSearch,
     clearSearch,
+    refreshSearch,
     setIsSearching,
   };
 }

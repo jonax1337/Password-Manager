@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Edit, User, Key, Trash2, ExternalLink, Star, GripVertical } from "lucide-react";
+import { Edit, User, Key, Trash2, ExternalLink, Star, GripVertical, Copy } from "lucide-react";
 import { DynamicIcon } from "@/components/IconPicker";
 import { updateEntry } from "@/lib/tauri";
 import { useDraggable } from "@dnd-kit/core";
@@ -28,6 +28,7 @@ interface EntryListItemProps {
   onContextMenuChange: (open: boolean) => void;
   onCopyField: (text: string, fieldName: string) => void;
   onOpenUrl: (url: string) => void;
+  onDuplicate: () => void;
   onDelete: () => void;
   onRefresh: () => void;
   formatTimestamp: (timestamp?: string) => string;
@@ -45,6 +46,7 @@ export function EntryListItem({
   onContextMenuChange,
   onCopyField,
   onOpenUrl,
+  onDuplicate,
   onDelete,
   onRefresh,
   formatTimestamp,
@@ -206,6 +208,10 @@ export function EntryListItem({
         <ContextMenuItem onClick={onSelect}>
           <Edit className="mr-2 h-4 w-4" />
           Edit Entry
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onDuplicate}>
+          <Copy className="mr-2 h-4 w-4" />
+          Duplicate Entry
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={handleToggleFavorite}>
