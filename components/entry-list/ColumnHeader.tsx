@@ -83,41 +83,50 @@ export function ColumnHeader({
       onColumnResize(columnId, 120);
       return;
     }
-    
+
     // Timestamps: fixed format length
     if (columnId === 'created' || columnId === 'modified') {
       onColumnResize(columnId, 160);
       return;
     }
-    
-    if (entries.length === 0) return;
-    
-    // Calculate optimal width based on content
-    let maxLength = 0;
-    
-    entries.forEach(entry => {
-      let content = '';
+
+    // Calculate optimal width based on content and header label
+    let maxContentLength = 0;
+
+    entries.forEach((entry) => {
+      let content = "";
       switch (columnId) {
-        case 'title':
+        case "title":
           content = entry.title;
           break;
-        case 'username':
+        case "username":
           content = entry.username;
           break;
-        case 'url':
+        case "url":
           content = entry.url;
           break;
-        case 'notes':
+        case "notes":
           content = entry.notes;
           break;
       }
-      maxLength = Math.max(maxLength, content.length);
+      maxContentLength = Math.max(maxContentLength, content.length);
     });
-    
-    // Estimate width: ~8px per character + padding + icon space
-    const estimatedWidth = Math.max(80, Math.min(400, maxLength * 8 + 40));
+
+    const columnConfig = columns.find((c) => c.id === columnId);
+    const headerLabel = columnConfig?.label ?? "";
+    const headerLength = headerLabel.length;
+
+    const effectiveCharCount = Math.max(maxContentLength, headerLength);
+    const basePadding = 32; // cell padding
+    const sortIconWidth = 16; // space for sort icon
+
+    // Estimate width: ~8px per character + padding + sort icon space
+    const estimatedWidth = Math.max(
+      80,
+      Math.min(400, effectiveCharCount * 8 + basePadding + sortIconWidth),
+    );
     onColumnResize(columnId, estimatedWidth);
-  }, [entries, onColumnResize]);
+  }, [columns, entries, onColumnResize]);
 
   // Add/remove event listeners for resize
   useEffect(() => {
