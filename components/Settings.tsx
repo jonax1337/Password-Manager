@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { getHibpEnabled, setHibpEnabled, getLiveUpdates, setLiveUpdates } from "@/lib/storage";
 
 export function Settings() {
@@ -101,6 +102,7 @@ export function Settings() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      <CustomTitleBar title="Settings" hideMaximize />
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <div className="h-10 w-10 flex items-center justify-center rounded-md bg-primary/10">

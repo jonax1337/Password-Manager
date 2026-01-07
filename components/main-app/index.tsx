@@ -32,6 +32,7 @@ import { moveGroup } from "@/lib/tauri";
 import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
 import { AppHeader } from "./AppHeader";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useWindowManagement } from "./hooks/useWindowManagement";
 import { useSearch } from "./hooks/useSearch";
@@ -158,7 +159,7 @@ export function MainApp({ onClose }: MainAppProps) {
   
   useAutoLock(performClose);
   
-  useWindowManagement({
+  const { windowTitle } = useWindowManagement({
     dbPath,
     isDirty,
     onCloseRequested: () => {
@@ -621,6 +622,7 @@ export function MainApp({ onClose }: MainAppProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-full w-full flex-col">
+        <CustomTitleBar title={windowTitle} />
         <AppHeader
           searchQuery={searchQuery}
           onSearchChange={handleSearchWithScope}
