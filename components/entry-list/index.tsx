@@ -48,30 +48,38 @@ export function EntryList({
   const [contextMenuEntryUuid, setContextMenuEntryUuid] = useState<string | null>(null);
   const [hoveredEntry, setHoveredEntry] = useState<EntryData | null>(null);
   const { toast } = useToast();
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const scrollRef = useCallback((node: HTMLDivElement | null) => {
-    if (!node) return;
-    
+    setScrollContainer(node);
+  }, []);
+
+  useEffect(() => {
+    if (!scrollContainer) return;
+
     const handleScroll = (e: Event) => {
-      const scrollLeft = (e.target as HTMLElement).scrollLeft;
-      const allScrollables = node.querySelectorAll('.row-scroll');
-      allScrollables.forEach(el => {
-        if (el !== e.target) {
-          el.scrollLeft = scrollLeft;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const scrollLeft = target.scrollLeft;
+      const allScrollables = scrollContainer.querySelectorAll(".row-scroll");
+      allScrollables.forEach((el) => {
+        if (el !== target) {
+          (el as HTMLElement).scrollLeft = scrollLeft;
         }
       });
     };
-    
-    const scrollables = node.querySelectorAll('.row-scroll');
-    scrollables.forEach(el => {
-      el.addEventListener('scroll', handleScroll);
+
+    const scrollables = scrollContainer.querySelectorAll(".row-scroll");
+    scrollables.forEach((el) => {
+      el.addEventListener("scroll", handleScroll);
     });
-    
+
     return () => {
-      scrollables.forEach(el => {
-        el.removeEventListener('scroll', handleScroll);
+      scrollables.forEach((el) => {
+        el.removeEventListener("scroll", handleScroll);
       });
     };
-  }, []);
+  }, [scrollContainer, entries.length]);
 
   // Custom hooks
   const { columns, visibleColumns, toggleColumn, updateColumnWidth } = useColumnConfig(databasePath);
