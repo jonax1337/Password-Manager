@@ -62,8 +62,12 @@ export function ColumnHeader({
       .reduce((sum, col) => sum + col.width, 0);
     const maxWidth = containerWidth - otherColumnsWidth; // Use full available space
     
-    // Limit width to available space
-    newWidth = Math.min(newWidth, maxWidth);
+    // Limit width to available space only when there's at least enough room
+    // for the minimum column width. If not, allow the column to grow beyond
+    // the container, enabling horizontal scrolling instead of collapsing.
+    if (maxWidth > 60) {
+      newWidth = Math.min(newWidth, maxWidth);
+    }
     
     onColumnResize(resizingColumn, newWidth);
   }, [resizingColumn, startX, startWidth, onColumnResize, visibleColumns]);
