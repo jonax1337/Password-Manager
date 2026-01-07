@@ -31,7 +31,6 @@ import { getIconComponent } from "@/components/IconPicker";
 import { moveGroup } from "@/lib/tauri";
 import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
-import { AppHeader } from "./AppHeader";
 import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useWindowManagement } from "./hooks/useWindowManagement";
@@ -622,8 +621,9 @@ export function MainApp({ onClose }: MainAppProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-full w-full flex-col">
-        <CustomTitleBar title={windowTitle} />
-        <AppHeader
+        <CustomTitleBar 
+          title={windowTitle}
+          showMenu={true}
           searchQuery={searchQuery}
           onSearchChange={handleSearchWithScope}
           isDirty={isDirty}
