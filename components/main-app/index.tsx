@@ -682,6 +682,9 @@ export function MainApp({ onClose }: MainAppProps) {
                 onRefresh={handleRefresh}
                 onSearchRefresh={() => refreshSearch(searchScope, canSearchInFolder ? selectedGroupUuid : undefined)}
                 isSearching={isSearching || isFavoritesView}
+                hasActiveSearch={isSearching}
+                isFavoritesView={isFavoritesView}
+                rootGroupUuid={rootGroup?.uuid}
                 selectedGroupName={
                   isSearching
                     ? undefined

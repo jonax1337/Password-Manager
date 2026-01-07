@@ -33,6 +33,9 @@ export interface EntryListProps {
   onRefresh: () => void;
   onSearchRefresh?: () => void;
   isSearching?: boolean;
+  hasActiveSearch?: boolean;
+  isFavoritesView?: boolean;
+  rootGroupUuid?: string;
   selectedGroupName?: string;
   databasePath?: string;
 }
