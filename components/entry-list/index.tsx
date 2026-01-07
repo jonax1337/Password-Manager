@@ -372,123 +372,80 @@ export function EntryList({
           />
         )}
 
-        {(!hasActiveSearch && (isFavoritesView || groupUuid)) ? (
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
-              <ScrollArea className="flex-1">
-                {entries.length > 0 ? (
-                  <div ref={scrollRef} className="min-h-full">
-                    {/* Column Header */}
-                    <ColumnHeader
-                      columns={columns}
-                      visibleColumns={visibleColumns}
-                      currentSort={currentSort}
-                      isAllSelected={isAllSelected}
-                      entries={sortedEntries}
-                      onToggleSelectAll={toggleSelectAll}
-                      onSort={handleSort}
-                      onToggleColumn={toggleColumn}
-                      onColumnResize={updateColumnWidth}
-                    />
-                    
-                    {/* Entries */}
-                    {sortedEntries.map((entry) => (
-                      <div
-                        key={entry.uuid}
-                        onMouseEnter={() => setHoveredEntry(entry)}
-                        onMouseLeave={() => setHoveredEntry(null)}
-                      >
-                        <EntryListItem
-                          entry={entry}
-                          visibleColumns={visibleColumns}
-                          isSelected={selectedEntry?.uuid === entry.uuid}
-                          isContextMenuOpen={contextMenuEntryUuid === entry.uuid}
-                          isChecked={isSelected(entry.uuid)}
-                          onSelect={() => onSelectEntry(entry)}
-                          onToggleCheck={() => toggleSelectEntry(entry.uuid)}
-                          onContextMenuChange={(open) => setContextMenuEntryUuid(open ? entry.uuid : null)}
-                          onCopyField={handleCopyField}
-                          onOpenUrl={handleOpenUrl}
-                          onDuplicate={() => handleDuplicateEntry(entry)}
-                          onDelete={() => handleDeleteEntry(entry)}
-                          onRefresh={onRefresh}
-                          formatTimestamp={formatTimestamp}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                    {isSearching
-                      ? "No results found"
-                      : groupUuid
-                      ? "No entries in this group"
-                      : "Select a group to view entries"}
-                  </div>
-                )}
-              </ScrollArea>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => setShowCreateDialog(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {isFavoritesView ? "New Favorite Entry" : "New Entry"}
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        ) : (
-          <ScrollArea className="flex-1">
-            {entries.length > 0 ? (
-              <div ref={scrollRef} className="min-h-full">
-                {/* Column Header */}
-                <ColumnHeader
-                  columns={columns}
-                  visibleColumns={visibleColumns}
-                  currentSort={currentSort}
-                  isAllSelected={isAllSelected}
-                  entries={sortedEntries}
-                  onToggleSelectAll={toggleSelectAll}
-                  onSort={handleSort}
-                  onToggleColumn={toggleColumn}
-                  onColumnResize={updateColumnWidth}
-                />
-                
-                {/* Entries */}
-                {sortedEntries.map((entry) => (
-                  <div
-                    key={entry.uuid}
-                    onMouseEnter={() => setHoveredEntry(entry)}
-                    onMouseLeave={() => setHoveredEntry(null)}
-                  >
-                    <EntryListItem
-                      entry={entry}
-                      visibleColumns={visibleColumns}
-                      isSelected={selectedEntry?.uuid === entry.uuid}
-                      isContextMenuOpen={contextMenuEntryUuid === entry.uuid}
-                      isChecked={isSelected(entry.uuid)}
-                      onSelect={() => onSelectEntry(entry)}
-                      onToggleCheck={() => toggleSelectEntry(entry.uuid)}
-                      onContextMenuChange={(open) => setContextMenuEntryUuid(open ? entry.uuid : null)}
-                      onCopyField={handleCopyField}
-                      onOpenUrl={handleOpenUrl}
-                      onDuplicate={() => handleDuplicateEntry(entry)}
-                      onDelete={() => handleDeleteEntry(entry)}
-                      onRefresh={onRefresh}
-                      formatTimestamp={formatTimestamp}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                {isSearching
-                  ? "No results found"
-                  : groupUuid
-                  ? "No entries in this group"
-                  : "Select a group to view entries"}
-              </div>
-            )}
-          </ScrollArea>
-        )}
+        {(() => {
+          // Common ScrollArea content
+          const scrollAreaContent = (
+            <ScrollArea className="flex-1">
+              {entries.length > 0 ? (
+                <div ref={scrollRef} className="min-h-full">
+                  {/* Column Header */}
+                  <ColumnHeader
+                    columns={columns}
+                    visibleColumns={visibleColumns}
+                    currentSort={currentSort}
+                    isAllSelected={isAllSelected}
+                    entries={sortedEntries}
+                    onToggleSelectAll={toggleSelectAll}
+                    onSort={handleSort}
+                    onToggleColumn={toggleColumn}
+                    onColumnResize={updateColumnWidth}
+                  />
+                  
+                  {/* Entries */}
+                  {sortedEntries.map((entry) => (
+                    <div
+                      key={entry.uuid}
+                      onMouseEnter={() => setHoveredEntry(entry)}
+                      onMouseLeave={() => setHoveredEntry(null)}
+                    >
+                      <EntryListItem
+                        entry={entry}
+                        visibleColumns={visibleColumns}
+                        isSelected={selectedEntry?.uuid === entry.uuid}
+                        isContextMenuOpen={contextMenuEntryUuid === entry.uuid}
+                        isChecked={isSelected(entry.uuid)}
+                        onSelect={() => onSelectEntry(entry)}
+                        onToggleCheck={() => toggleSelectEntry(entry.uuid)}
+                        onContextMenuChange={(open) => setContextMenuEntryUuid(open ? entry.uuid : null)}
+                        onCopyField={handleCopyField}
+                        onOpenUrl={handleOpenUrl}
+                        onDuplicate={() => handleDuplicateEntry(entry)}
+                        onDelete={() => handleDeleteEntry(entry)}
+                        onRefresh={onRefresh}
+                        formatTimestamp={formatTimestamp}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                  {isSearching
+                    ? "No results found"
+                    : groupUuid
+                    ? "No entries in this group"
+                    : "Select a group to view entries"}
+                </div>
+              )}
+            </ScrollArea>
+          );
+
+          // Conditionally wrap with ContextMenu
+          const shouldShowContextMenu = !hasActiveSearch && (isFavoritesView || groupUuid);
+          
+          return shouldShowContextMenu ? (
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                {scrollAreaContent}
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {isFavoritesView ? "New Favorite Entry" : "New Entry"}
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          ) : scrollAreaContent;
+        })()}
 
         {/* Timestamp Bar */}
         <TimestampBar 
