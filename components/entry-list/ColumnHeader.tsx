@@ -37,8 +37,6 @@ export function ColumnHeader({
   onColumnResize,
 }: ColumnHeaderProps) {
   const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
-  const [startX, setStartX] = useState(0);
-  const [startWidth, setStartWidth] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const startXRef = useRef(0);
@@ -54,8 +52,6 @@ export function ColumnHeader({
     e.preventDefault();
     e.stopPropagation();
     setResizingColumn(columnId);
-    setStartX(e.clientX);
-    setStartWidth(currentWidth);
     startXRef.current = e.clientX;
     startWidthRef.current = currentWidth;
   }, []);
