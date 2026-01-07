@@ -37,13 +37,8 @@ export function ColumnHeader({
   onColumnResize,
 }: ColumnHeaderProps) {
   const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
-  const [startX, setStartX] = useState(0);
-  const [startWidth, setStartWidth] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const handleResizeStart = useCallback((e: React.MouseEvent, columnId: ColumnId, currentWidth: number) => {
-    e.preventDefault();
-    e.stopPropagation();
+  
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const visibleColumnsRef = useRef<ColumnConfig[]>(visibleColumns);
@@ -57,8 +52,6 @@ export function ColumnHeader({
     e.preventDefault();
     e.stopPropagation();
     setResizingColumn(columnId);
-    setStartX(e.clientX);
-    setStartWidth(currentWidth);
     startXRef.current = e.clientX;
     startWidthRef.current = currentWidth;
   }, []);
@@ -76,8 +69,12 @@ export function ColumnHeader({
       .reduce((sum, col) => sum + col.width, 0);
     const maxWidth = containerWidth - otherColumnsWidth; // Use full available space
 
-    // Limit width to available space
-    newWidth = Math.min(newWidth, maxWidth);
+    // Limit width to available space only when there's at least enough room
+    // for the minimum column width. If not, allow the column to grow beyond
+    // the container, enabling horizontal scrolling instead of collapsing.
+    if (maxWidth > 60) {
+      newWidth = Math.min(newWidth, maxWidth);
+    }
 
     onColumnResize(resizingColumn, newWidth);
   }, [resizingColumn, onColumnResize]);
