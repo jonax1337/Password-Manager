@@ -77,7 +77,7 @@ export function useColumnConfig(databasePath?: string) {
         
         setColumns(prev => prev.map(col => ({
           ...col,
-          width: Math.max(60, Math.round(col.width * ratio))
+          width: Math.max(60, col.width * ratio)
         })));
       }
       
