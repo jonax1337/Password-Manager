@@ -51,19 +51,6 @@ export function SearchHeader({
       }`}
     >
       <div className="max-w-4xl mx-auto relative">
-        {onToggle && (
-          <button
-            onClick={onToggle}
-            className="absolute -right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded transition-colors"
-            title={isVisible ? "Hide search" : "Show search"}
-          >
-            {isVisible ? (
-              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
-          </button>
-        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
