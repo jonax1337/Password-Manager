@@ -328,13 +328,6 @@ export function Settings() {
           </ScrollArea>
         </TabsContent>
       </Tabs>
-
-      {/* Footer */}
-      <div className="flex-shrink-0 flex items-center justify-end gap-2 border-t px-4 py-3 bg-background">
-        <Button variant="outline" onClick={handleClose}>
-          Close
-        </Button>
-      </div>
     </div>
   );
 }

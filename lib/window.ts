@@ -151,7 +151,7 @@ export async function openSettingsWindow() {
       url: `${baseUrl}/settings`,
       title: "Settings",
       width: 600,
-      height: 500,
+      height: 600,
       resizable: false,
       maximizable: false,
       decorations: false,
