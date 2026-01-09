@@ -113,6 +113,7 @@ export async function openEntryWindow(entry: EntryData, groupUuid: string) {
       height: 700,
       resizable: false,
       maximizable: false,
+      decorations: false,
       center: true,
     });
 
@@ -150,9 +151,10 @@ export async function openSettingsWindow() {
       url: `${baseUrl}/settings`,
       title: "Settings",
       width: 600,
-      height: 500,
+      height: 600,
       resizable: false,
       maximizable: false,
+      decorations: false,
       center: true,
     });
 

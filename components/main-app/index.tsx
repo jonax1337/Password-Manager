@@ -31,7 +31,8 @@ import { getIconComponent } from "@/components/IconPicker";
 import { moveGroup } from "@/lib/tauri";
 import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
-import { AppHeader } from "./AppHeader";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
+import { SearchHeader } from "@/components/SearchHeader";
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useWindowManagement } from "./hooks/useWindowManagement";
 import { useSearch } from "./hooks/useSearch";
@@ -85,6 +86,7 @@ export function MainApp({ onClose }: MainAppProps) {
   const [dndActiveData, setDndActiveData] = useState<DragData>(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -158,7 +160,7 @@ export function MainApp({ onClose }: MainAppProps) {
   
   useAutoLock(performClose);
   
-  useWindowManagement({
+  const { windowTitle } = useWindowManagement({
     dbPath,
     isDirty,
     onCloseRequested: () => {
@@ -237,7 +239,15 @@ export function MainApp({ onClose }: MainAppProps) {
     setShowConflictDialog(false);
   }, []);
 
-  useKeyboardShortcuts({ onSave: handleSave });
+  useKeyboardShortcuts({ 
+    onSave: handleSave,
+    onToggleSearch: () => setIsSearchVisible(true),
+    onCloseSearch: () => {
+      setIsSearchVisible(false);
+      clearSearch();
+    },
+    isSearchVisible
+  });
   useEntryEvents(handleRefresh);
 
   // Listen for HIBP setting changes from Settings window
@@ -621,16 +631,24 @@ export function MainApp({ onClose }: MainAppProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-full w-full flex-col">
-        <AppHeader
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchWithScope}
+        <CustomTitleBar 
+          title={windowTitle}
+          showMenu={true}
           isDirty={isDirty}
           onSave={handleSave}
           onLogout={handleClose}
+          onToggleSearch={() => setIsSearchVisible(!isSearchVisible)}
+        />
+        
+        <SearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchWithScope}
           searchScope={effectiveSearchScope}
           onSearchScopeChange={handleSearchScopeChange}
           showSearchScopeDropdown={showSearchScopeDropdown}
           isSearchScopeDisabled={isDashboardView}
+          isVisible={isSearchVisible}
+          onToggle={() => setIsSearchVisible(!isSearchVisible)}
         />
 
         <div className="flex flex-1 overflow-hidden">

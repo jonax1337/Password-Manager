@@ -18,19 +18,20 @@ export function useWindowManagement({ dbPath, isDirty, onCloseRequested }: UseWi
     isDirtyRef.current = isDirty;
   }, [isDirty]);
 
-  // Update window title with database path and unsaved indicator
+  // Compute window title
+  const fileName = dbPath ? dbPath.split(/[\\/]/).pop() || dbPath : '';
+  const windowTitle = fileName
+    ? (isDirty ? `${fileName}* - Simple Password Manager` : `${fileName} - Simple Password Manager`)
+    : 'Simple Password Manager';
+
+  // Update window title (still needed for native title in case decorations are enabled)
   useEffect(() => {
     const updateTitle = async () => {
       const appWindow = getCurrentWindow();
-      // Extract filename from full path
-      const fileName = dbPath ? dbPath.split(/[\\/]/).pop() || dbPath : '';
-      const title = fileName
-        ? (isDirty ? `${fileName}* - Simple Password Manager` : `${fileName} - Simple Password Manager`)
-        : 'Simple Password Manager';
-      await appWindow.setTitle(title);
+      await appWindow.setTitle(windowTitle);
     };
     updateTitle();
-  }, [dbPath, isDirty]);
+  }, [windowTitle]);
 
   // Handle window close event
   useEffect(() => {
@@ -68,5 +69,5 @@ export function useWindowManagement({ dbPath, isDirty, onCloseRequested }: UseWi
     };
   }, [onCloseRequested]);
 
-  return { isDirtyRef };
+  return { isDirtyRef, windowTitle };
 }

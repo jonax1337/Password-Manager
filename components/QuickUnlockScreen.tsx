@@ -8,6 +8,7 @@ import Image from "next/image";
 import { openDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { KdfWarningDialog } from "@/components/KdfWarningDialog";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { invoke } from "@tauri-apps/api/core";
 
 interface QuickUnlockScreenProps {
@@ -118,7 +119,9 @@ export function QuickUnlockScreen({
         databasePath={lastDatabasePath}
       />
       
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="flex h-full w-full flex-col">
+        <CustomTitleBar />
+        <div className="flex flex-1 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <div className="w-full max-w-sm space-y-6 rounded-lg border bg-card p-6 shadow-lg">
         <div className="flex flex-col items-center space-y-2">
           <Image
@@ -165,6 +168,7 @@ export function QuickUnlockScreen({
             Open Different Database
           </Button>
         </div>
+      </div>
       </div>
     </div>
     </>

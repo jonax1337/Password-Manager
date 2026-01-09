@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { emit } from "@tauri-apps/api/event";
 import { IconPicker } from "@/components/IconPicker";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { GeneralTab } from "./GeneralTab";
 import { AdvancedTab } from "./AdvancedTab";
 import { HistoryTab } from "./HistoryTab";
@@ -203,6 +204,7 @@ export function EntryEditor({ entry, onClose, onRefresh, onHasChangesChange }: E
 
   return (
     <div className="flex h-full flex-col">
+      <CustomTitleBar title={`Edit Entry - ${formData.title}`} hideMaximize />
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-3 border-b px-4 py-3 bg-muted/30">
         <IconPicker value={iconId} onChange={handleIconChange} />

@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { CreateDatabaseDialog } from "@/components/CreateDatabaseDialog";
 import { KdfWarningDialog } from "@/components/KdfWarningDialog";
+import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { saveLastDatabasePath } from "@/lib/storage";
 import { invoke } from "@tauri-apps/api/core";
 import Image from "next/image";
@@ -157,7 +158,9 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
         databasePath={filePath}
       />
       
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="flex h-full w-full flex-col">
+        <CustomTitleBar />
+        <div className="flex flex-1 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
         <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
           <div className="flex flex-col items-center space-y-4">
             <Image 
@@ -235,6 +238,7 @@ export function UnlockScreen({ onUnlock, initialFilePath }: UnlockScreenProps) {
               Create New Database
             </Button>
           </div>
+        </div>
         </div>
       </div>
     </>
