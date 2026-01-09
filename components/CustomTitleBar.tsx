@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X, Copy, Save, Settings, LogOut, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,7 +123,7 @@ export function CustomTitleBar({
           )}
           <button
             onClick={handleClose}
-            className="h-full pl-4 pr-4 hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center"
+            className="h-full px-4 hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -135,7 +136,7 @@ export function CustomTitleBar({
   // Menu bar mode (for main app - minimal with File menu and DB name)
   return (
     <div 
-      className="h-9 bg-muted/50 border-b select-none flex items-center justify-between px-2 relative"
+      className="h-9 bg-muted/50 border-b select-none flex items-center justify-between pl-2 relative"
       data-tauri-drag-region
       onMouseDown={(e) => {
         if (e.target === e.currentTarget || (e.target as HTMLElement).hasAttribute('data-tauri-drag-region')) {
@@ -186,24 +187,30 @@ export function CustomTitleBar({
       </div>
 
       {/* Right: Search + Settings + Window Controls */}
-      <div className="flex items-center h-full z-10">
+      <div className="flex items-center gap-1 h-full z-10">
         {onToggleSearch && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
             onClick={onToggleSearch}
-            className="h-full px-3 hover:bg-accent transition-colors flex items-center justify-center"
             title="Toggle Search (Ctrl+F)"
           >
-            <Search className="h-3.5 w-3.5" />
-          </button>
+            <Search className="h-4 w-4" />
+          </Button>
         )}
         
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
           onClick={() => openSettingsWindow()}
-          className="h-full px-3 hover:bg-accent transition-colors flex items-center justify-center"
           title="Settings"
         >
-          <Settings className="h-3.5 w-3.5" />
-        </button>
+          <Settings className="h-4 w-4" />
+        </Button>
+
+        <div className="h-5 w-px bg-border mx-1" />
 
         <button
           onClick={handleMinimize}
@@ -227,7 +234,7 @@ export function CustomTitleBar({
         )}
         <button
           onClick={handleClose}
-          className="h-full pl-3 pr-4 hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center"
+          className="h-full px-3 hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center justify-center"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
