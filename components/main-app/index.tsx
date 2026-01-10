@@ -30,7 +30,7 @@ import {
 } from "@dnd-kit/core";
 import { getIconComponent } from "@/components/IconPicker";
 import { moveGroup } from "@/lib/tauri";
-import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
+import { findGroupByUuid, findParentGroup, isDescendant } from "@/components/group-tree/utils";
 
 import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { SearchHeader } from "@/components/SearchHeader";
@@ -168,6 +168,14 @@ export function MainApp({ onClose }: MainAppProps) {
 
   // Custom hooks
   const { searchQuery, searchResults, isSearching, searchScope, setSearchScope, handleSearch, clearSearch, refreshSearch, setIsSearching } = useSearch();
+  
+  // Set global addToHistory for components that need it (e.g., EntryListItem favorite toggle)
+  useEffect(() => {
+    (window as any).__addToHistory = addToHistory;
+    return () => {
+      delete (window as any).__addToHistory;
+    };
+  }, [addToHistory]);
   
   useAutoLock(performClose);
   
@@ -652,13 +660,29 @@ export function MainApp({ onClose }: MainAppProps) {
       }
 
       try {
+        const oldGroupUuid = entry.group_uuid;
         await moveEntry(entry.uuid, targetId);
+        
+        // Track for undo/redo
+        addToHistory(
+          `Move entry "${entry.title}" to group`,
+          async () => {
+            await moveEntry(entry.uuid, oldGroupUuid);
+            await handleRefresh();
+          },
+          async () => {
+            await moveEntry(entry.uuid, targetId);
+            await handleRefresh();
+          }
+        );
+        
+        setIsDirty(true);
+        await handleRefresh();
         toast({
           title: "Success",
           description: `Moved "${entry.title}" to "${targetGroup.name}"`,
           variant: "success",
         });
-        handleRefresh();
       } catch (error: any) {
         toast({
           title: "Error",
@@ -687,13 +711,34 @@ export function MainApp({ onClose }: MainAppProps) {
           return;
         }
 
+        const oldParent = findParentGroup(rootGroup, draggedId);
+        const oldParentUuid = oldParent?.uuid || rootGroup.uuid;
+        
         await moveGroup(draggedId, targetId);
+        
+        // Track for undo/redo
+        const movedGroup = findGroupByUuid(rootGroup, draggedId);
+        if (movedGroup) {
+          addToHistory(
+            `Move group "${movedGroup.name}"`,
+            async () => {
+              await moveGroup(draggedId, oldParentUuid);
+              await handleRefresh();
+            },
+            async () => {
+              await moveGroup(draggedId, targetId);
+              await handleRefresh();
+            }
+          );
+        }
+        
+        setIsDirty(true);
+        await handleRefresh();
         toast({
           title: "Success",
           description: `Moved "${draggedGroup.name}" into "${targetGroup.name}"`,
           variant: "success",
         });
-        handleRefresh();
       } catch (error: any) {
         toast({
           title: "Error",
@@ -824,6 +869,7 @@ export function MainApp({ onClose }: MainAppProps) {
                 activeId={dndActiveId}
                 overId={dndOverId}
                 activeType={dndActiveType}
+                addToHistory={addToHistory}
               />
             )}
           </ResizablePanel>
@@ -863,6 +909,7 @@ export function MainApp({ onClose }: MainAppProps) {
                     : undefined
                 }
                 databasePath={dbPath}
+                addToHistory={addToHistory}
               />
             )}
           </div>
