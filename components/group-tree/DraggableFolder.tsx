@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronDown, Plus, Trash2, Edit2 } from "lucide-react";
 import {
@@ -80,11 +81,12 @@ export function DraggableFolder({
                   }}
                 >
                   {hasChildren ? (
-                    isExpanded ? (
-                      <ChevronDown className="h-3 w-3" />
-                    ) : (
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 90 : 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
                       <ChevronRight className="h-3 w-3" />
-                    )
+                    </motion.div>
                   ) : (
                     <div className="h-3 w-3" />
                   )}
