@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Copy, Save, Settings, LogOut, Search } from "lucide-react";
+import { Minus, Square, X, Copy, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Settings } from "@/components/animate-ui/icons/settings";
+import { Search } from "@/components/animate-ui/icons/search";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,8 @@ export function CustomTitleBar({
   onToggleSearch,
 }: CustomTitleBarProps) {
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isSettingsHovered, setIsSettingsHovered] = useState(false);
+  const [isSearchHovered, setIsSearchHovered] = useState(false);
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -140,9 +144,11 @@ export function CustomTitleBar({
             size="icon"
             className="h-7 w-7"
             onClick={onToggleSearch}
+            onMouseEnter={() => setIsSearchHovered(true)}
+            onMouseLeave={() => setIsSearchHovered(false)}
             title="Toggle Search (Ctrl+F)"
           >
-            <Search className="h-4 w-4" />
+            <Search size={16} animate={isSearchHovered} animation="find"/>
           </Button>
         )}
         
@@ -152,9 +158,11 @@ export function CustomTitleBar({
             size="icon"
             className="h-7 w-7"
             onClick={() => openSettingsWindow()}
+            onMouseEnter={() => setIsSettingsHovered(true)}
+            onMouseLeave={() => setIsSettingsHovered(false)}
             title="Settings"
           >
-            <Settings className="h-4 w-4" />
+            <Settings size={16} animate={isSettingsHovered} />
           </Button>
         )}
 
