@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Copy, Save, LogOut } from "lucide-react";
+import { Minus, Square, X, Copy, Save, LogOut, Undo2, Redo2, Clipboard, ClipboardPaste, FolderOpen, Database as DatabaseIcon, Eye, EyeOff, Info, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { Search } from "@/components/animate-ui/icons/search";
@@ -23,6 +23,17 @@ interface CustomTitleBarProps {
   onSave?: () => void;
   onLogout?: () => void;
   onToggleSearch?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onCopy?: () => void;
+  onPaste?: () => void;
+  onOpenRecent?: () => void;
+  onNewDatabase?: () => void;
+  onTogglePasswords?: () => void;
+  onAbout?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  passwordsVisible?: boolean;
 }
 
 export function CustomTitleBar({ 
@@ -33,6 +44,17 @@ export function CustomTitleBar({
   onSave,
   onLogout,
   onToggleSearch,
+  onUndo,
+  onRedo,
+  onCopy,
+  onPaste,
+  onOpenRecent,
+  onNewDatabase,
+  onTogglePasswords,
+  onAbout,
+  canUndo = false,
+  canRedo = false,
+  passwordsVisible = false,
 }: CustomTitleBarProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSettingsHovered, setIsSettingsHovered] = useState(false);
@@ -92,40 +114,126 @@ export function CustomTitleBar({
         }
       }}
     >
-      {/* Left: Icon + Optional File Menu (only for main app) */}
-      <div className="flex items-center gap-2 z-10">
+      {/* Left: Icon + Optional Menus (only for main app) */}
+      <div className="flex items-center gap-1 z-10">
         <img 
           src="/app-icon.png" 
           alt="App Icon" 
-          className="h-4 w-4"
+          className="h-4 w-4 ml-1"
         />
         {showMenu && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="px-2 py-1 text-xs font-medium hover:bg-accent rounded transition-colors">
-                File
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem
-                onClick={onSave}
-                disabled={!isDirty}
-                className="gap-2 cursor-pointer"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save Database</span>
-                <span className="ml-auto text-xs text-muted-foreground">Ctrl+S</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={onLogout}
-                className="gap-2 cursor-pointer"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <>
+            {/* File Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-2 py-1 text-xs font-medium hover:bg-accent rounded transition-colors">
+                  File
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuItem
+                  onClick={onNewDatabase}
+                  className="gap-2 cursor-pointer"
+                >
+                  <DatabaseIcon className="h-4 w-4" />
+                  <span>New Database</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+N</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onOpenRecent}
+                  className="gap-2 cursor-pointer"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  <span>Open Recent</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onSave}
+                  disabled={!isDirty}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Database</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+S</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onLogout}
+                  className="gap-2 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Close Database</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+W</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Edit Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-2 py-1 text-xs font-medium hover:bg-accent rounded transition-colors">
+                  Edit
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuItem
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  <span>Undo</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+Z</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Redo2 className="h-4 w-4" />
+                  <span>Redo</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+Y</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* View Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-2 py-1 text-xs font-medium hover:bg-accent rounded transition-colors">
+                  View
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuItem
+                  onClick={onToggleSearch}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Search size={16} />
+                  <span>Toggle Search</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+F</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Help Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-2 py-1 text-xs font-medium hover:bg-accent rounded transition-colors">
+                  Help
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuItem
+                  onClick={onAbout}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Info className="h-4 w-4" />
+                  <span>About</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
         )}
       </div>
 

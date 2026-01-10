@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 const LAST_DATABASE_KEY = "lastDatabasePath";
+const RECENT_DATABASES_KEY = "recentDatabases";
 const COLUMN_CONFIG_PREFIX = "columnConfig_";
 const COLUMN_WIDTHS_PREFIX = "columnWidths_";
 const HIBP_ENABLED_KEY = "hibpEnabled";
@@ -23,6 +24,37 @@ export function getLastDatabasePath(): string | null {
 export function clearLastDatabasePath(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(LAST_DATABASE_KEY);
+  }
+}
+
+export function addRecentDatabase(path: string): void {
+  if (typeof window !== "undefined") {
+    const recent = getRecentDatabases();
+    const filtered = recent.filter(p => p !== path);
+    const updated = [path, ...filtered].slice(0, 10);
+    localStorage.setItem(RECENT_DATABASES_KEY, JSON.stringify(updated));
+  }
+}
+
+export function getRecentDatabases(): string[] {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(RECENT_DATABASES_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+export function clearRecentDatabase(path: string): void {
+  if (typeof window !== "undefined") {
+    const recent = getRecentDatabases();
+    const filtered = recent.filter(p => p !== path);
+    localStorage.setItem(RECENT_DATABASES_KEY, JSON.stringify(filtered));
   }
 }
 

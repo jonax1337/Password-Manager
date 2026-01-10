@@ -8,7 +8,7 @@ import { EntryList } from "@/components/entry-list";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { DatabaseConflictDialog } from "@/components/DatabaseConflictDialog";
 import { Dashboard } from "@/components/Dashboard";
-import { openEntryWindow, requestCloseAllChildWindows } from "@/lib/window";
+import { openEntryWindow, requestCloseAllChildWindows, openAboutWindow } from "@/lib/window";
 import { useToast } from "@/components/ui/use-toast";
 import type { GroupData, EntryData } from "@/lib/tauri";
 import { loadGroupTreeState } from "@/lib/group-state";
@@ -34,12 +34,17 @@ import { findGroupByUuid, isDescendant } from "@/components/group-tree/utils";
 
 import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { SearchHeader } from "@/components/SearchHeader";
+import { OpenRecentDialog } from "@/components/OpenRecentDialog";
+import { CreateDatabaseDialog } from "@/components/CreateDatabaseDialog";
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useWindowManagement } from "./hooks/useWindowManagement";
 import { useSearch } from "./hooks/useSearch";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useEntryEvents } from "./hooks/useEntryEvents";
+import { useUndoRedo } from "./hooks/useUndoRedo";
 import { listen } from "@tauri-apps/api/event";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { addRecentDatabase } from "@/lib/storage";
 
 interface MainAppProps {
   onClose: (isManualLogout?: boolean) => void;
@@ -88,7 +93,12 @@ export function MainApp({ onClose }: MainAppProps) {
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [selectedEntryForCopy, setSelectedEntryForCopy] = useState<EntryData | null>(null);
+  const [passwordsVisible, setPasswordsVisible] = useState(false);
+  const [showOpenRecentDialog, setShowOpenRecentDialog] = useState(false);
+  const [showCreateDatabaseDialog, setShowCreateDatabaseDialog] = useState(false);
   const { toast } = useToast();
+  const { addToHistory, undo, redo, canUndo, canRedo } = useUndoRedo();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -240,16 +250,123 @@ export function MainApp({ onClose }: MainAppProps) {
     setShowConflictDialog(false);
   }, []);
 
-  useKeyboardShortcuts({ 
-    onSave: handleSave,
-    onToggleSearch: () => setIsSearchVisible(true),
-    onCloseSearch: () => {
-      setIsSearchVisible(false);
-      clearSearch();
-    },
-    isSearchVisible
-  });
-  useEntryEvents(handleRefresh);
+  const handleCopyPassword = useCallback(async () => {
+    if (!selectedEntryForCopy) {
+      toast({
+        title: "No Entry Selected",
+        description: "Please select an entry first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await writeText(selectedEntryForCopy.password);
+      toast({
+        title: "Copied",
+        description: "Password copied to clipboard",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to copy password",
+        variant: "destructive",
+      });
+    }
+  }, [selectedEntryForCopy, toast]);
+
+  const handlePaste = useCallback(() => {
+    toast({
+      title: "Paste",
+      description: "Paste functionality is context-dependent",
+      variant: "default",
+    });
+  }, [toast]);
+
+  const handleOpenRecent = useCallback(() => {
+    setShowOpenRecentDialog(true);
+  }, []);
+
+  const handleSelectRecentDatabase = useCallback(async (path: string) => {
+    if (isDirty) {
+      toast({
+        title: "Unsaved Changes",
+        description: "Please save or discard changes before opening another database",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await performClose(false);
+    window.location.reload();
+  }, [isDirty, performClose, toast]);
+
+  const handleNewDatabase = useCallback(() => {
+    if (isDirty) {
+      toast({
+        title: "Unsaved Changes",
+        description: "Please save or discard changes before creating a new database",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowCreateDatabaseDialog(true);
+  }, [isDirty, toast]);
+
+  const handleNewDatabaseSuccess = useCallback(async () => {
+    await performClose(false);
+    window.location.reload();
+  }, [performClose]);
+
+  const handleTogglePasswords = useCallback(() => {
+    setPasswordsVisible(prev => !prev);
+    toast({
+      title: passwordsVisible ? "Passwords Hidden" : "Passwords Visible",
+      description: passwordsVisible ? "Password columns are now hidden" : "Password columns are now visible",
+      variant: "default",
+    });
+  }, [passwordsVisible, toast]);
+
+  const handleUndo = useCallback(async () => {
+    try {
+      await undo();
+      handleRefresh();
+      toast({
+        title: "Undo",
+        description: "Action undone",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to undo action",
+        variant: "destructive",
+      });
+    }
+  }, [undo, handleRefresh, toast]);
+
+  const handleRedo = useCallback(async () => {
+    try {
+      await redo();
+      handleRefresh();
+      toast({
+        title: "Redo",
+        description: "Action redone",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to redo action",
+        variant: "destructive",
+      });
+    }
+  }, [redo, handleRefresh, toast]);
+
+  const handleAbout = useCallback(() => {
+    openAboutWindow();
+  }, []);
 
   // Listen for HIBP setting changes from Settings window
   useEffect(() => {
@@ -362,6 +479,22 @@ export function MainApp({ onClose }: MainAppProps) {
       await performClose(true);
     }
   };
+
+  // Keyboard shortcuts and entry events - must be after all handlers are defined
+  useKeyboardShortcuts({ 
+    onSave: handleSave,
+    onClose: handleClose,
+    onNewDatabase: handleNewDatabase,
+    onToggleSearch: () => setIsSearchVisible(true),
+    onCloseSearch: () => {
+      setIsSearchVisible(false);
+      clearSearch();
+    },
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    isSearchVisible
+  });
+  useEntryEvents(handleRefresh);
 
   const handleUnsavedCancel = () => {
     setShowUnsavedDialog(false);
@@ -639,6 +772,17 @@ export function MainApp({ onClose }: MainAppProps) {
           onSave={handleSave}
           onLogout={handleClose}
           onToggleSearch={() => setIsSearchVisible(!isSearchVisible)}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onCopy={handleCopyPassword}
+          onPaste={handlePaste}
+          onOpenRecent={handleOpenRecent}
+          onNewDatabase={handleNewDatabase}
+          onTogglePasswords={handleTogglePasswords}
+          onAbout={handleAbout}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          passwordsVisible={passwordsVisible}
         />
         
         <SearchHeader
@@ -737,6 +881,18 @@ export function MainApp({ onClose }: MainAppProps) {
           onSynchronize={handleSynchronize}
           onOverwrite={handleOverwrite}
           onCancel={handleConflictCancel}
+        />
+
+        <OpenRecentDialog
+          open={showOpenRecentDialog}
+          onOpenChange={setShowOpenRecentDialog}
+          onSelectDatabase={handleSelectRecentDatabase}
+        />
+
+        <CreateDatabaseDialog
+          isOpen={showCreateDatabaseDialog}
+          onClose={() => setShowCreateDatabaseDialog(false)}
+          onSuccess={handleNewDatabaseSuccess}
         />
       </div>
 

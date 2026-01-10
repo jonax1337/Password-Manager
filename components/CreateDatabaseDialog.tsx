@@ -16,7 +16,7 @@ import { FolderOpen } from "lucide-react";
 import { createDatabase } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
 import { open } from "@tauri-apps/plugin-dialog";
-import { saveLastDatabasePath } from "@/lib/storage";
+import { saveLastDatabasePath, addRecentDatabase } from "@/lib/storage";
 import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 interface CreateDatabaseDialogProps {
@@ -93,6 +93,7 @@ export function CreateDatabaseDialog({
 
       await createDatabase(fullPath, password);
       saveLastDatabasePath(fullPath);
+      addRecentDatabase(fullPath);
       
       toast({
         title: "Success",
