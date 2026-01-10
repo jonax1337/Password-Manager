@@ -12,8 +12,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { openSettingsWindow } from "@/lib/window";
+import { getRecentDatabases } from "@/lib/storage";
+import { open } from "@tauri-apps/plugin-shell";
 
 interface CustomTitleBarProps {
   title?: string;
@@ -27,7 +32,6 @@ interface CustomTitleBarProps {
   onRedo?: () => void;
   onCopy?: () => void;
   onPaste?: () => void;
-  onOpenRecent?: () => void;
   onNewDatabase?: () => void;
   onTogglePasswords?: () => void;
   onAbout?: () => void;
@@ -48,7 +52,6 @@ export function CustomTitleBar({
   onRedo,
   onCopy,
   onPaste,
-  onOpenRecent,
   onNewDatabase,
   onTogglePasswords,
   onAbout,
@@ -59,6 +62,22 @@ export function CustomTitleBar({
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSettingsHovered, setIsSettingsHovered] = useState(false);
   const [isSearchHovered, setIsSearchHovered] = useState(false);
+  const [recentDatabases, setRecentDatabases] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRecentDatabases(getRecentDatabases());
+  }, []);
+
+  const openDatabaseInNewInstance = async (dbPath: string) => {
+    try {
+      // Open the database file with the system's default handler
+      // Since .kdbx files are associated with this app, the OS will open a new instance
+      await open(dbPath);
+    } catch (error) {
+      console.error('Failed to open database in new instance:', error);
+      alert(`Could not open database: ${error}`);
+    }
+  };
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -139,13 +158,32 @@ export function CustomTitleBar({
                   <span>New Database</span>
                   <span className="ml-auto text-xs text-muted-foreground">Ctrl+N</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={onOpenRecent}
-                  className="gap-2 cursor-pointer"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span>Open Recent</span>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    <span>Open Recent</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {recentDatabases.length > 0 ? (
+                      recentDatabases.map((dbPath) => (
+                        <DropdownMenuItem
+                          key={dbPath}
+                          onClick={() => openDatabaseInNewInstance(dbPath)}
+                          className="gap-2 cursor-pointer"
+                        >
+                          <DatabaseIcon className="h-4 w-4" />
+                          <span className="truncate max-w-[200px]" title={dbPath}>
+                            {dbPath.split('/').pop() || dbPath.split('\\').pop() || dbPath}
+                          </span>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem disabled className="text-muted-foreground">
+                        No recent databases
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={onSave}

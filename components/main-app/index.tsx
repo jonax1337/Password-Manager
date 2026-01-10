@@ -34,7 +34,6 @@ import { findGroupByUuid, findParentGroup, isDescendant } from "@/components/gro
 
 import { CustomTitleBar } from "@/components/CustomTitleBar";
 import { SearchHeader } from "@/components/SearchHeader";
-import { OpenRecentDialog } from "@/components/OpenRecentDialog";
 import { CreateDatabaseDialog } from "@/components/CreateDatabaseDialog";
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useWindowManagement } from "./hooks/useWindowManagement";
@@ -95,7 +94,6 @@ export function MainApp({ onClose }: MainAppProps) {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedEntryForCopy, setSelectedEntryForCopy] = useState<EntryData | null>(null);
   const [passwordsVisible, setPasswordsVisible] = useState(false);
-  const [showOpenRecentDialog, setShowOpenRecentDialog] = useState(false);
   const [showCreateDatabaseDialog, setShowCreateDatabaseDialog] = useState(false);
   const { toast } = useToast();
   const { addToHistory, undo, redo, canUndo, canRedo } = useUndoRedo();
@@ -292,23 +290,6 @@ export function MainApp({ onClose }: MainAppProps) {
     });
   }, [toast]);
 
-  const handleOpenRecent = useCallback(() => {
-    setShowOpenRecentDialog(true);
-  }, []);
-
-  const handleSelectRecentDatabase = useCallback(async (path: string) => {
-    if (isDirty) {
-      toast({
-        title: "Unsaved Changes",
-        description: "Please save or discard changes before opening another database",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    await performClose(false);
-    window.location.reload();
-  }, [isDirty, performClose, toast]);
 
   const handleNewDatabase = useCallback(() => {
     if (isDirty) {
@@ -821,7 +802,6 @@ export function MainApp({ onClose }: MainAppProps) {
           onRedo={handleRedo}
           onCopy={handleCopyPassword}
           onPaste={handlePaste}
-          onOpenRecent={handleOpenRecent}
           onNewDatabase={handleNewDatabase}
           onTogglePasswords={handleTogglePasswords}
           onAbout={handleAbout}
@@ -928,12 +908,6 @@ export function MainApp({ onClose }: MainAppProps) {
           onSynchronize={handleSynchronize}
           onOverwrite={handleOverwrite}
           onCancel={handleConflictCancel}
-        />
-
-        <OpenRecentDialog
-          open={showOpenRecentDialog}
-          onOpenChange={setShowOpenRecentDialog}
-          onSelectDatabase={handleSelectRecentDatabase}
         />
 
         <CreateDatabaseDialog
