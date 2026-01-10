@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { saveDatabase, closeDatabase, getGroups, getFavoriteEntries, moveEntry, checkDatabaseChanges, mergeDatabase } from "@/lib/tauri";
 import { GroupTree } from "@/components/group-tree";
 import { EntryList } from "@/components/entry-list";
@@ -651,7 +652,12 @@ export function MainApp({ onClose }: MainAppProps) {
           onToggle={() => setIsSearchVisible(!isSearchVisible)}
         />
 
-        <div className="flex flex-1 overflow-hidden">
+        <motion.div 
+          className="flex flex-1 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <ResizablePanel
             defaultWidth={256}
             minWidth={200}
@@ -716,7 +722,7 @@ export function MainApp({ onClose }: MainAppProps) {
               />
             )}
           </div>
-        </div>
+        </motion.div>
 
         <UnsavedChangesDialog
           open={showUnsavedDialog}

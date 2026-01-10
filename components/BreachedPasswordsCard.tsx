@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Edit, X, RefreshCw, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, Edit, X, ShieldAlert, Trash2 } from "lucide-react";
+import { RefreshCcw } from "@/components/animate-ui/icons/refresh-ccw";
 import { checkBreachedPasswords } from "@/lib/tauri";
 import type { BreachedEntry } from "@/lib/tauri";
 import { useToast } from "@/components/ui/use-toast";
@@ -213,7 +214,11 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
             disabled={isLoading}
             className="h-8 w-8"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCcw 
+              size={16} 
+              animate={isLoading ? "rotate" : undefined}
+              animateOnHover={!isLoading}
+            />
           </Button>
         </div>
         <CardDescription>
@@ -223,7 +228,7 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
       <CardContent className="p-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+            <RefreshCcw size={16} className="animate-spin mr-2" />
             Checking passwords against HIBP database...
           </div>
         ) : filteredBreachedEntries.length === 0 ? (
