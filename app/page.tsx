@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { UnlockScreen } from "@/components/UnlockScreen";
 import { QuickUnlockScreen } from "@/components/QuickUnlockScreen";
 import { MainApp } from "@/components/main-app";
