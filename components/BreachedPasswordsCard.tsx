@@ -26,7 +26,6 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
   const [selectedUuids, setSelectedUuids] = useState<Set<string>>(new Set());
   const [isInitialized, setIsInitialized] = useState(false);
   const [lastCheckTrigger, setLastCheckTrigger] = useState<number | undefined>(undefined);
-  const [isRefreshHovered, setIsRefreshHovered] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -212,15 +211,13 @@ export function BreachedPasswordsCard({ refreshTrigger, databasePath, onEditEntr
             variant="ghost"
             size="icon"
             onClick={loadBreachedPasswords}
-            onMouseEnter={() => setIsRefreshHovered(true)}
-            onMouseLeave={() => setIsRefreshHovered(false)}
             disabled={isLoading}
             className="h-8 w-8"
           >
             <RefreshCcw 
               size={16} 
-              animate={isLoading || isRefreshHovered} 
-              animation={isLoading ? "rotate" : "default"}
+              animate={isLoading ? "rotate" : undefined}
+              animateOnHover={!isLoading}
             />
           </Button>
         </div>
